@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::fs::read_to_string;
-use std::io::stdin;
+use std::io::prelude::*;
+use std::io::{stdin, stdout};
 use std::process::Command;
 
 const CHANNELS_FILE: &str = "channels.json";
@@ -66,6 +67,13 @@ fn main() {
         handle
     };
 
+    print!("\nOpen chat? (Y/n): ");
+    stdout().flush().ok().expect("Could not flush stdout");
+
+    let mut chat: String = String::new();
+
+    stdin().read_line(&mut chat).expect("Failed to read input");
+
     Command::new("powershell")
         .arg("Start-Process")
         .arg("streamlink")
@@ -75,10 +83,12 @@ fn main() {
         .output()
         .expect("Failed to open stream");
 
-    Command::new("powershell")
-        .arg("Start-Process")
-        .arg("\"C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\Chatterino\"")
-        .arg(format!("\"-c {}\"", channel_handle.trim()))
-        .output()
-        .expect("Failed to open chat");
+    if chat.trim().to_lowercase() == "y" || chat.trim().to_lowercase() == "" {
+        Command::new("powershell")
+            .arg("Start-Process")
+            .arg("\"C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\Chatterino\"")
+            .arg(format!("\"-c {}\"", channel_handle.trim()))
+            .output()
+            .expect("Failed to open chat");
+    }
 }
