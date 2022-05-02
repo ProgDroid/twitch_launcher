@@ -1,19 +1,21 @@
 pub mod app;
 
-pub mod event;
+pub mod channel;
 
-pub mod tui;
+pub mod event;
 
 pub mod handler;
 
-pub mod theme;
+pub mod popup;
 
-pub mod channel;
-
-pub mod twitch_account;
+pub mod render;
 
 pub mod secret;
 
 pub mod state;
 
-pub mod render;
+pub mod theme;
+
+pub mod tui;
+
+pub mod twitch_account;

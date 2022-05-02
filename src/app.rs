@@ -1,19 +1,12 @@
-use crate::state::{Event, State, StateMachine};
-use crate::theme::Theme;
-use crate::twitch_account::TwitchAccount;
-// use chrono::{Datelike, Local};
-// use crossterm::event::{KeyCode, KeyEvent};
-use std::collections::VecDeque;
-use std::error;
-use tui::backend::Backend;
-// use tui::layout::{Alignment, Constraint, Direction, Layout};
-// use tui::style::{Color, Modifier, Style};
-use tui::terminal::Frame;
-// use tui::widgets::{Block, List, ListItem, ListState, Paragraph, Tabs};
+use crate::{
+    state::{Event, State, StateMachine},
+    theme::Theme,
+    twitch_account::TwitchAccount,
+};
+use std::{collections::VecDeque, error};
+use tui::{backend::Backend, terminal::Frame};
 
-// const HORIZONTAL_MARGIN: u16 = 2;
 const STARTUP_DURATION: u16 = 2;
-// const VERTICAL_MARGIN: u16 = 1;
 
 pub type AppResult<T> = std::result::Result<T, Box<dyn error::Error>>;
 
@@ -46,6 +39,7 @@ impl App {
                 timer: 0,
                 startup_duration: ticks_from_seconds(tick_rate, STARTUP_DURATION as u64) as u16,
                 twitch_account,
+                popup: None,
             },
             events: VecDeque::new(),
         }

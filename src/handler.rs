@@ -1,5 +1,8 @@
-use crate::app::{App, AppResult};
-use crate::state::{Event, State, StateMachine};
+use crate::{
+    app::{App, AppResult},
+    popup::Popup,
+    state::{Event, State, StateMachine},
+};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 pub type KeyBindFn = fn(KeyEvent, &mut App) -> AppResult<()>;
@@ -33,6 +36,7 @@ pub fn keybinds_home(key_event: KeyEvent) -> Option<KeyBindFn> {
         KeyCode::Char('s') | KeyCode::Char('S') | KeyCode::Down => Some(highlight_down),
         KeyCode::Char('w') | KeyCode::Char('W') | KeyCode::Up => Some(highlight_up),
         KeyCode::Enter | KeyCode::Char(' ') => Some(select_channel),
+        KeyCode::Char('p') => Some(test_popup),
         _ => None,
     }
 }
@@ -132,6 +136,20 @@ fn highlight_up(_: KeyEvent, app: &mut App) -> AppResult<()> {
 
 fn select_channel(_: KeyEvent, app: &mut App) -> AppResult<()> {
     app.events.push_back(Event::ChannelSelected);
+
+    Ok(())
+}
+
+fn test_popup(_: KeyEvent, app: &mut App) -> AppResult<()> {
+    match app.state {
+        StateMachine::Home { ref mut popup, .. } => {
+            *popup = Some(Popup {
+                title: String::from("Test"),
+                message: String::from("This is a test popup"),
+            });
+        }
+        _ => {}
+    }
 
     Ok(())
 }

@@ -1,17 +1,24 @@
-use crate::channel::{Channel, ChannelStatus};
-use crate::theme::{Elevation, Theme};
-// use crate::twitch_account::TwitchAccount;
+use crate::{
+    channel::{Channel, ChannelStatus},
+    popup::Popup,
+    theme::{Elevation, Theme},
+};
 use chrono::{Datelike, Local};
 use std::cmp::min;
-use tui::backend::Backend;
-use tui::layout::{Alignment, Constraint, Direction, Layout};
-use tui::style::{Color, Modifier, Style};
-use tui::terminal::Frame;
-use tui::text::{Span, Spans};
-use tui::widgets::{Block, List, ListItem, ListState, Paragraph, Tabs};
+use tui::{
+    backend::Backend,
+    layout::{Alignment, Constraint, Direction, Layout, Rect},
+    style::{Color, Modifier, Style},
+    terminal::Frame,
+    text::{Span, Spans},
+    widgets::{Block, Borders, List, ListItem, ListState, Paragraph, Tabs},
+};
 
 const HORIZONTAL_MARGIN: u16 = 2;
 const VERTICAL_MARGIN: u16 = 1;
+
+const POPUP_PERCENTAGE_X: u16 = 60;
+const POPUP_PERCENTAGE_Y: u16 = 20;
 
 #[repr(usize)]
 enum Tab {
@@ -88,8 +95,30 @@ pub fn render_home<B: Backend>(
     tab_titles: &[&'static str; 2],
     channel_highlight: &usize,
     channels: &Vec<Channel>,
+    popup: &Option<Popup>,
 ) {
     let size = frame.size();
+
+    if let Some(p) = popup {
+        let area = generate_popup(size);
+
+        let background =
+            Block::default().style(Style::default().bg(theme.background.as_tui_colour()));
+
+        frame.render_widget(background, size);
+
+        let paragraph = Paragraph::new((&p.message).as_str())
+            .block(
+                Block::default()
+                    .title((&p.title).as_str())
+                    .borders(Borders::ALL)
+                    .border_style(Style::default().fg(theme.secondary.as_tui_colour())),
+            )
+            .alignment(Alignment::Center);
+
+        frame.render_widget(paragraph, area);
+        return;
+    }
 
     let block = Block::default().style(
         Style::default()
@@ -148,9 +177,6 @@ pub fn render_home<B: Backend>(
 
     frame.render_widget(tabs, chunks[0]);
 
-    let mut list_state: ListState = ListState::default();
-    list_state.select(Some(*channel_highlight));
-
     match Tab::from(*tab) {
         Tab::Home => {
             let list_chunks = Layout::default()
@@ -166,6 +192,9 @@ pub fn render_home<B: Backend>(
                 ),
                 list_chunks[0],
             );
+
+            let mut list_state: ListState = ListState::default();
+            list_state.select(Some(*channel_highlight));
 
             frame.render_stateful_widget(
                 generate_favourites_widget(theme, &channels, middle_chunks[0].width),
@@ -273,4 +302,30 @@ fn generate_title<'a>(title: &str, bg_colour: Color, text_colour: Color) -> Para
     .block(Block::default().style(Style::default().bg(bg_colour)))
     .style(Style::default())
     .alignment(Alignment::Left)
+}
+
+fn generate_popup<'a>(r: Rect) -> Rect {
+    let layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints(
+            [
+                Constraint::Percentage((100 - POPUP_PERCENTAGE_Y) / 2),
+                Constraint::Percentage(POPUP_PERCENTAGE_Y),
+                Constraint::Percentage((100 - POPUP_PERCENTAGE_Y) / 2),
+            ]
+            .as_ref(),
+        )
+        .split(r);
+
+    Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints(
+            [
+                Constraint::Percentage((100 - POPUP_PERCENTAGE_X) / 2),
+                Constraint::Percentage(POPUP_PERCENTAGE_X),
+                Constraint::Percentage((100 - POPUP_PERCENTAGE_X) / 2),
+            ]
+            .as_ref(),
+        )
+        .split(layout[1])[1]
 }

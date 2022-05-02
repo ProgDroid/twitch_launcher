@@ -119,3 +119,4 @@ pub fn load_channels(
 
 // TODO need to accept custom channel input/search
 // TODO need to add account configuration
+// TODO github actions to check code?

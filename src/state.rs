@@ -1,17 +1,17 @@
-use crate::channel::{load_channels, Channel, ChannelStatus};
-use crate::handler::{keybinds_exit, keybinds_home, keybinds_startup, KeyBindFn};
-use crate::render;
-use crate::secret::{ExposeSecret, Secret};
-use crate::theme::Theme;
-use crate::twitch_account::TwitchAccount;
-// use chrono::{Datelike, Local};
+use crate::{
+    channel::{load_channels, Channel, ChannelStatus},
+    handler::{keybinds_exit, keybinds_home, keybinds_startup, KeyBindFn},
+    popup::Popup,
+    render,
+    secret::{ExposeSecret, Secret},
+    theme::Theme,
+    twitch_account::TwitchAccount,
+};
 use async_trait::async_trait;
 use crossterm::event::KeyEvent;
 use std::collections::VecDeque;
 use tokio::sync::mpsc;
-// use tokio::task::JoinHandle;
-use tui::backend::Backend;
-use tui::terminal::Frame;
+use tui::{backend::Backend, terminal::Frame};
 
 pub enum Event {
     AccountLoaded,
@@ -25,6 +25,7 @@ pub enum StateMachine {
         timer: u64,
         startup_duration: u16,
         twitch_account: Option<TwitchAccount>,
+        popup: Option<Popup>,
     },
     Home {
         tab: usize,
@@ -33,6 +34,7 @@ pub enum StateMachine {
         channels: Vec<Channel>,
         twitch_account: Option<TwitchAccount>,
         channel_check: mpsc::Receiver<(String, ChannelStatus)>,
+        popup: Option<Popup>,
     },
     // Follows(StateFollows),
     Exit,
@@ -119,8 +121,17 @@ impl State for StateMachine {
                 tab_titles,
                 channel_highlight,
                 channels,
+                popup,
                 ..
-            } => render::render_home(theme, frame, tab, tab_titles, channel_highlight, channels),
+            } => render::render_home(
+                theme,
+                frame,
+                tab,
+                tab_titles,
+                channel_highlight,
+                channels,
+                popup,
+            ),
             StateMachine::Exit { .. } => {}
         }
     }
@@ -166,6 +177,7 @@ impl State for StateMachine {
                         ),
                     }),
                     channel_check,
+                    popup: None,
                 })
             }
             (StateMachine::Home { .. }, Event::Exited) => Some(StateMachine::Exit),

@@ -1,0 +1,354 @@
+use serde::{Deserialize, Serialize};
+// use std::fs::read_to_string;
+// use std::io::prelude::*;
+// use std::io::{stdin, stdout};
+// use std::process::Command;
+
+// ! use template from github project
+// ! have function for card style!
+
+use chrono::prelude::*;
+use crossterm::{
+    event::{self, DisableMouseCapture, EnableMouseCapture, Event as CEvent, KeyCode, KeyEvent},
+    execute,
+    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+};
+use std::time::{Duration, Instant};
+use std::{error::Error, io, sync::mpsc, thread};
+use tui::{
+    backend::{Backend, CrosstermBackend},
+    layout::{Alignment, Constraint, Direction, Layout},
+    style::{Color, Modifier, Style},
+    text::{Span, Spans},
+    widgets::{
+        Block, BorderType, Borders, Cell, List, ListItem, ListState, Paragraph, Row, Table, Tabs,
+    },
+    Frame, Terminal,
+};
+
+// const CHANNELS_FILE: &str = "channels.json";
+
+const BG_GREY: CustomColor = CustomColor {
+    r: 18,
+    g: 18,
+    b: 18,
+};
+const ONE_DP_GREY: CustomColor = CustomColor {
+    r: 29,
+    g: 29,
+    b: 29,
+};
+const MARGIN: u16 = 2;
+const MENU_TITLES: [&str; 2] = ["Home", "Follows"];
+const TICK_RATE: u64 = 200;
+
+struct App<'a> {
+    pub titles: Vec<&'a str>,
+    pub index: usize,
+}
+
+struct CustomColor {
+    pub r: u8,
+    pub b: u8,
+    pub g: u8,
+}
+
+// struct Theme {
+//     something: something,
+//     something_else: something_else,
+// }
+
+impl<'a> App<'a> {
+    fn new() -> App<'a> {
+        App {
+            titles: vec!["Home", "Follows"],
+            index: 0,
+        }
+    }
+
+    pub fn next(&mut self) {
+        self.index = (self.index + 1) % self.titles.len();
+    }
+
+    pub fn previous(&mut self) {
+        if self.index > 0 {
+            self.index -= 1;
+        } else {
+            self.index = self.titles.len() - 1;
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct Channel {
+    friendly_name: String,
+    handle: String,
+}
+
+// fn get_choice(range: usize) -> u8 {
+//     loop {
+//         let mut input: String = String::new();
+
+//         stdin().read_line(&mut input).expect("Failed to read input");
+
+//         match input.trim().parse::<u8>() {
+//             Ok(num) => {
+//                 if (num as usize) <= range {
+//                     break num;
+//                 } else {
+//                     println!("A number from the list, please\n");
+//                     continue;
+//                 }
+//             }
+//             Err(_) => {
+//                 println!("Please provide an actual number\n");
+//                 continue;
+//             }
+//         }
+//     }
+// }
+
+enum Event<KeyEvent> {
+    Input(KeyEvent),
+    Tick,
+}
+
+#[derive(Copy, Clone, Debug)]
+#[repr(usize)]
+enum MenuItem {
+    Home, // home
+    Follows,
+}
+
+impl From<usize> for MenuItem {
+    fn from(input: usize) -> MenuItem {
+        match input {
+            0 => MenuItem::Home,
+            1 => MenuItem::Follows,
+            _ => {
+                eprintln!("Menu Item does not exist, going Home");
+                MenuItem::Home
+            }
+        }
+    }
+}
+
+// impl fmt::Display for MenuItem {
+//     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+//         write!(f, "{:?}", self)
+//     }
+// }
+
+fn render_home<'a>() -> Paragraph<'a> {
+    let home = Paragraph::new(vec![Spans::from(vec![Span::raw("Test")])])
+        .alignment(Alignment::Center)
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .style(Style::default().fg(Color::White))
+                .title("Home")
+                .border_type(BorderType::Plain),
+        );
+    home
+}
+
+fn render_follows<'a>() -> Paragraph<'a> {
+    let follows = Paragraph::new(vec![Spans::from(vec![Span::raw("Test Follows")])])
+        .alignment(Alignment::Center)
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .style(Style::default().fg(Color::White))
+                .title("Follows")
+                .border_type(BorderType::Plain),
+        );
+    follows
+}
+
+fn main() -> Result<(), Box<dyn Error>> {
+    enable_raw_mode()?;
+    let mut stdout = io::stdout();
+    execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
+    let backend = CrosstermBackend::new(stdout);
+    let mut terminal = Terminal::new(backend)?;
+
+    let (tx, rx) = mpsc::channel();
+    let tick_rate = Duration::from_millis(TICK_RATE);
+
+    thread::spawn(move || {
+        let mut last_tick = Instant::now();
+
+        loop {
+            let timeout = tick_rate
+                .checked_sub(last_tick.elapsed())
+                .unwrap_or_else(|| Duration::from_secs(0));
+
+            if event::poll(timeout).expect("poll works") {
+                if let CEvent::Key(key) = event::read().expect("can read events") {
+                    tx.send(Event::Input(key)).expect("can send events");
+                }
+            }
+
+            if last_tick.elapsed() >= tick_rate {
+                if let Ok(_) = tx.send(Event::Tick) {
+                    last_tick = Instant::now();
+                }
+            }
+        }
+    });
+
+    let app = App::new();
+    let res = run_app(&mut terminal, app, rx);
+
+    disable_raw_mode()?;
+    execute!(
+        terminal.backend_mut(),
+        LeaveAlternateScreen,
+        DisableMouseCapture
+    )?;
+    terminal.show_cursor()?;
+
+    if let Err(err) = res {
+        eprintln!("{:?}", err)
+    }
+
+    Ok(())
+
+    // println!("Type [0] to input the channel name, or pick one from below\n");
+
+    // for (i, channel) in channels.iter().enumerate() {
+    //     println!("[{}] {}", i + 1, channel.friendly_name);
+    // }
+
+    // println!("");
+
+    // let choice: u8 = get_choice(channels.len());
+
+    // let channel_handle: String = if choice != 0u8 {
+    //     channels[(choice - 1) as usize].handle.to_owned()
+    // } else {
+    //     println!("\nWhat is the channel name?\n");
+
+    //     let mut handle: String = String::new();
+
+    //     stdin()
+    //         .read_line(&mut handle)
+    //         .expect("Failed to read input");
+
+    //     handle
+    // };
+
+    // print!("\nOpen chat? (Y/n): ");
+    // stdout().flush().ok().expect("Could not flush stdout");
+
+    // let mut chat: String = String::new();
+
+    // stdin().read_line(&mut chat).expect("Failed to read input");
+
+    // Command::new("powershell")
+    //     .arg("Start-Process")
+    //     .arg("streamlink")
+    //     .arg(format!("twitch.tv/{}", channel_handle.trim()))
+    //     .arg("-WindowStyle")
+    //     .arg("Hidden")
+    //     .output()
+    //     .expect("Failed to open stream");
+
+    // if chat.trim().to_lowercase() == "y" || chat.trim().to_lowercase() == "" {
+    //     Command::new("powershell")
+    //         .arg("Start-Process")
+    //         .arg("\"C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\Chatterino\"")
+    //         .arg(format!("\"-c {}\"", channel_handle.trim()))
+    //         .output()
+    //         .expect("Failed to open chat");
+    // }
+}
+
+fn run_app<B: Backend>(
+    terminal: &mut Terminal<B>,
+    mut app: App,
+    rx: mpsc::Receiver<Event<KeyEvent>>,
+) -> io::Result<()> {
+    loop {
+        terminal.draw(|rect| ui(rect, &app))?;
+
+        match rx.recv().unwrap() {
+            Event::Input(event) => match event.code {
+                KeyCode::Esc | KeyCode::Char('q') => {
+                    disable_raw_mode()?;
+                    terminal.show_cursor()?;
+                    break Ok(());
+                }
+                KeyCode::Tab | KeyCode::Right => app.next(),
+                KeyCode::BackTab | KeyCode::Left => app.previous(),
+                _ => {}
+            },
+            Event::Tick => {}
+        }
+    }
+}
+
+fn ui<B: Backend>(rect: &mut Frame<B>, app: &App) {
+    let size = rect.size();
+
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .margin(MARGIN)
+        .constraints(
+            [
+                Constraint::Length(3),
+                Constraint::Min(0),
+                Constraint::Length(3),
+            ]
+            .as_ref(),
+        )
+        .split(size);
+
+    let block = Block::default().style(
+        Style::default()
+            .bg(Color::Rgb(BG_GREY.r, BG_GREY.g, BG_GREY.b))
+            .fg(Color::White),
+    );
+    rect.render_widget(block, size);
+
+    let info_text = vec![Spans::from(vec![Span::styled(
+        format!("Twitch Launcher {} ", Utc::now().year()),
+        Style::default().add_modifier(Modifier::ITALIC),
+    )])];
+
+    let info = Paragraph::new(info_text)
+        .style(Style::default().fg(Color::LightCyan))
+        .alignment(Alignment::Right)
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .style(Style::default().fg(Color::White))
+                .title("Info")
+                .border_type(BorderType::Plain),
+        );
+
+    rect.render_widget(info, chunks[2]);
+
+    let menu = MENU_TITLES
+        .iter()
+        .map(|t| Spans::from(vec![Span::raw(*t)]))
+        .collect();
+
+    let tabs = Tabs::new(menu)
+        .select(app.index)
+        .block(Block::default().title(""))
+        .style(Style::default().fg(Color::White).bg(Color::Rgb(
+            ONE_DP_GREY.r,
+            ONE_DP_GREY.g,
+            ONE_DP_GREY.b,
+        )))
+        .highlight_style(Style::default().fg(Color::Yellow))
+        .divider(Span::raw(""));
+
+    rect.render_widget(tabs, chunks[0]);
+
+    match MenuItem::from(app.index) {
+        MenuItem::Home => rect.render_widget(render_home(), chunks[1]),
+        MenuItem::Follows => rect.render_widget(render_follows(), chunks[1]),
+    };
+}
