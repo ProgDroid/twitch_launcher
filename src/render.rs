@@ -96,6 +96,7 @@ pub fn render_home<B: Backend>(
     channel_highlight: &usize,
     channels: &Vec<Channel>,
     popup: &Option<Popup>,
+    search_input: &String,
 ) {
     let size = frame.size();
 
@@ -142,8 +143,8 @@ pub fn render_home<B: Backend>(
         )
         .split(size);
 
-    let background = Paragraph::new("")
-        .block(Block::default().title(""))
+    let background = Block::default()
+        .title("")
         .style(Style::default().bg(theme.elevation(Elevation::Level1).as_tui_colour()));
 
     frame.render_widget(background, chunks[2]);
@@ -201,6 +202,47 @@ pub fn render_home<B: Backend>(
                 list_chunks[1],
                 &mut list_state,
             );
+
+            let search_chunks_margin = Layout::default()
+                .direction(Direction::Horizontal)
+                .constraints([Constraint::Length(HORIZONTAL_MARGIN), Constraint::Min(1)].as_ref())
+                .split(middle_chunks[1]);
+
+            // TODO make this function
+            let search_background = Block::default()
+                .title("")
+                .style(Style::default().bg(theme.elevation(Elevation::Level2).as_tui_colour()));
+
+            frame.render_widget(search_background, search_chunks_margin[1]);
+
+            let search_chunks = Layout::default()
+                .direction(Direction::Horizontal)
+                .constraints(
+                    [
+                        Constraint::Percentage(7),
+                        Constraint::Min(1),
+                        Constraint::Percentage(5),
+                    ]
+                    .as_ref(),
+                )
+                .split(search_chunks_margin[1]);
+
+            let inner_search_chunks = Layout::default()
+                .direction(Direction::Vertical)
+                .constraints(
+                    [
+                        Constraint::Percentage(42),
+                        Constraint::Length(3),
+                        Constraint::Min(1),
+                    ]
+                    .as_ref(),
+                )
+                .split(search_chunks[1]);
+
+            frame.render_widget(
+                generate_channel_search(theme, search_input),
+                inner_search_chunks[1],
+            );
         }
         Tab::Follows => {
             frame.render_widget(
@@ -218,11 +260,7 @@ pub fn render_home<B: Backend>(
     let info = Paragraph::new(info_text)
         .style(Style::default().fg((&theme.primary).as_tui_colour()))
         .alignment(Alignment::Right)
-        .block(
-            Block::default()
-                .style(Style::default().fg(Color::White))
-                .title(""),
-        );
+        .block(Block::default().style(Style::default()).title(""));
 
     frame.render_widget(info, chunks[3]);
 }
@@ -328,4 +366,17 @@ fn generate_popup<'a>(r: Rect) -> Rect {
             .as_ref(),
         )
         .split(layout[1])[1]
+}
+
+fn generate_channel_search<'a>(theme: &Theme, search_input: &'a String) -> Paragraph<'a> {
+    Paragraph::new(search_input.as_str()).block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title(Span::styled(
+                "Search Channel",
+                Style::default().fg((&theme.text).as_tui_colour()),
+            ))
+            .border_style(Style::default().fg((&theme.primary).as_tui_colour()))
+            .style(Style::default().bg(theme.elevation(Elevation::Level2).as_tui_colour())),
+    )
 }

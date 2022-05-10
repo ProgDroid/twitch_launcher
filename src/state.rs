@@ -35,6 +35,7 @@ pub enum StateMachine {
         twitch_account: Option<TwitchAccount>,
         channel_check: mpsc::Receiver<(String, ChannelStatus)>,
         popup: Option<Popup>,
+        search_input: String,
     },
     // Follows(StateFollows),
     Exit,
@@ -122,6 +123,7 @@ impl State for StateMachine {
                 channel_highlight,
                 channels,
                 popup,
+                search_input,
                 ..
             } => render::render_home(
                 theme,
@@ -131,6 +133,7 @@ impl State for StateMachine {
                 channel_highlight,
                 channels,
                 popup,
+                search_input,
             ),
             StateMachine::Exit { .. } => {}
         }
@@ -178,6 +181,7 @@ impl State for StateMachine {
                     }),
                     channel_check,
                     popup: None,
+                    search_input: String::new(), // TODO should this be Vec<Char>?
                 })
             }
             (StateMachine::Home { .. }, Event::Exited) => Some(StateMachine::Exit),
