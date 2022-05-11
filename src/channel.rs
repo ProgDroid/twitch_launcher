@@ -67,6 +67,7 @@ impl Channel {
         };
     }
 
+    // TODO popup if channel is offline (are you sure?)
     pub fn launch(self: &Self) -> (Result<Output>, Result<Output>) {
         let output_stream = Command::new("powershell")
             .arg("Start-Process")
@@ -117,6 +118,5 @@ pub fn load_channels(
     (channels, receiver)
 }
 
-// TODO need to accept custom channel input/search
 // TODO need to add account configuration
 // TODO github actions to check code?

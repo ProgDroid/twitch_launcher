@@ -1,6 +1,7 @@
 use crate::{
     channel::{load_channels, Channel, ChannelStatus},
     handler::{keybinds_exit, keybinds_home, keybinds_startup, KeyBindFn},
+    panel::HomePanel,
     popup::Popup,
     render,
     secret::{ExposeSecret, Secret},
@@ -35,7 +36,8 @@ pub enum StateMachine {
         twitch_account: Option<TwitchAccount>,
         channel_check: mpsc::Receiver<(String, ChannelStatus)>,
         popup: Option<Popup>,
-        search_input: String,
+        search_input: Vec<char>,
+        focused_panel: HomePanel,
     },
     // Follows(StateFollows),
     Exit,
@@ -124,6 +126,7 @@ impl State for StateMachine {
                 channels,
                 popup,
                 search_input,
+                focused_panel,
                 ..
             } => render::render_home(
                 theme,
@@ -134,6 +137,7 @@ impl State for StateMachine {
                 channels,
                 popup,
                 search_input,
+                focused_panel,
             ),
             StateMachine::Exit { .. } => {}
         }
@@ -151,29 +155,29 @@ impl State for StateMachine {
                     channels,
                     twitch_account: Some(TwitchAccount {
                         username: String::from(
-                            (*twitch_account.as_ref().unwrap()).username.as_str(),
+                            (twitch_account.as_ref().unwrap()).username.as_str(),
                         ),
                         user_id: String::from((*twitch_account.as_ref().unwrap()).user_id.as_str()),
                         client_id: Secret::new(
-                            (*twitch_account.as_ref().unwrap())
+                            (twitch_account.as_ref().unwrap())
                                 .client_id
                                 .expose_value()
                                 .to_string(),
                         ),
                         client_secret: Secret::new(
-                            (*twitch_account.as_ref().unwrap())
+                            (twitch_account.as_ref().unwrap())
                                 .client_secret
                                 .expose_value()
                                 .to_string(),
                         ),
                         user_access_token: Secret::new(
-                            (*twitch_account.as_ref().unwrap())
+                            (twitch_account.as_ref().unwrap())
                                 .user_access_token
                                 .expose_value()
                                 .to_string(),
                         ),
                         refresh_token: Secret::new(
-                            (*twitch_account.as_ref().unwrap())
+                            (twitch_account.as_ref().unwrap())
                                 .refresh_token
                                 .expose_value()
                                 .to_string(),
@@ -181,7 +185,8 @@ impl State for StateMachine {
                     }),
                     channel_check,
                     popup: None,
-                    search_input: String::new(), // TODO should this be Vec<Char>?
+                    search_input: Vec::new(),
+                    focused_panel: HomePanel::default(),
                 })
             }
             (StateMachine::Home { .. }, Event::Exited) => Some(StateMachine::Exit),
@@ -209,7 +214,7 @@ impl State for StateMachine {
                     }
                 }
 
-                Some(StateMachine::Exit)
+                None
             }
             (StateMachine::Startup { .. }, Event::Exited) => Some(StateMachine::Exit),
             _ => None,

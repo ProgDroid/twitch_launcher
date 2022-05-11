@@ -1,5 +1,6 @@
 use crate::{
     channel::{Channel, ChannelStatus},
+    panel::HomePanel,
     popup::Popup,
     theme::{Elevation, Theme},
 };
@@ -55,8 +56,13 @@ pub fn startup_animation<B: Backend>(theme: &Theme, frame: &mut Frame<'_, B>, ti
 
     frame.render_widget(
         Paragraph::new(format!("Starting{}", animate_ellipsis(&timer)))
-            .block(Block::default().style(Style::default().fg(theme.text.as_tui_colour())))
-            .style(Style::default().fg(Color::White))
+            .block(
+                Block::default().style(
+                    Style::default()
+                        .fg(theme.text.as_tui_colour())
+                        .add_modifier(Modifier::ITALIC),
+                ),
+            )
             .alignment(Alignment::Left),
         chunks[1],
     );
@@ -88,6 +94,7 @@ pub fn account_missing<B: Backend>(theme: &Theme, frame: &mut Frame<'_, B>, time
     );
 }
 
+// ? TODO this might need splitting
 pub fn render_home<B: Backend>(
     theme: &Theme,
     frame: &mut Frame<'_, B>,
@@ -96,19 +103,20 @@ pub fn render_home<B: Backend>(
     channel_highlight: &usize,
     channels: &Vec<Channel>,
     popup: &Option<Popup>,
-    search_input: &String,
+    search_input: &Vec<char>,
+    focused_panel: &HomePanel,
 ) {
-    let size = frame.size();
+    let area = frame.size();
 
     if let Some(p) = popup {
-        let area = generate_popup(size);
+        let area = generate_popup_layout(area);
 
-        let background =
-            Block::default().style(Style::default().bg(theme.background.as_tui_colour()));
+        frame.render_widget(
+            generate_background_widget(theme.background.as_tui_colour()),
+            area,
+        );
 
-        frame.render_widget(background, size);
-
-        let paragraph = Paragraph::new((&p.message).as_str())
+        let paragraph = Paragraph::new(p.message.as_str())
             .block(
                 Block::default()
                     .title((&p.title).as_str())
@@ -121,69 +129,31 @@ pub fn render_home<B: Backend>(
         return;
     }
 
-    let block = Block::default().style(
-        Style::default()
-            .bg(theme.background.as_tui_colour())
-            .fg(Color::White),
+    frame.render_widget(
+        generate_background_widget(theme.background.as_tui_colour()),
+        area,
     );
-    frame.render_widget(block, size);
 
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .horizontal_margin(HORIZONTAL_MARGIN)
-        .vertical_margin(VERTICAL_MARGIN)
-        .constraints(
-            [
-                Constraint::Length(3), // Header
-                Constraint::Length(1), // Empty Area
-                Constraint::Min(0),    // Content Area
-                Constraint::Length(2), // Footer
-            ]
-            .as_ref(),
-        )
-        .split(size);
+    let app_layout = generate_app_layout(area);
 
-    let background = Block::default()
-        .title("")
-        .style(Style::default().bg(theme.elevation(Elevation::Level1).as_tui_colour()));
+    frame.render_widget(
+        generate_background_widget(theme.elevation(Elevation::Level1).as_tui_colour()),
+        app_layout[2],
+    );
 
-    frame.render_widget(background, chunks[2]);
-
-    let middle_chunks = Layout::default()
-        .direction(Direction::Horizontal)
-        .horizontal_margin(HORIZONTAL_MARGIN)
-        .vertical_margin(VERTICAL_MARGIN)
-        .constraints([Constraint::Percentage(30), Constraint::Min(1)].as_ref())
-        .split(chunks[2]);
+    let content_area = generate_content_area_layout(app_layout[2]);
 
     let menu = tab_titles
         .iter()
         .map(|t| Spans::from(vec![Span::raw(*t)]))
         .collect();
 
-    let tabs = Tabs::new(menu)
-        .select(*tab)
-        .block(Block::default().title(""))
-        .style(
-            Style::default()
-                .fg(Color::White)
-                .bg(theme.elevation(Elevation::Level1).as_tui_colour()),
-        )
-        .highlight_style(
-            Style::default()
-                .fg(theme.primary.as_tui_colour())
-                .add_modifier(Modifier::BOLD),
-        )
-        .divider(Span::raw(""));
-
-    frame.render_widget(tabs, chunks[0]);
+    frame.render_widget(generate_tabs_widget(menu, tab, theme), app_layout[0]);
 
     match Tab::from(*tab) {
         Tab::Home => {
-            let list_chunks = Layout::default()
-                .direction(Direction::Vertical)
-                .constraints([Constraint::Length(3), Constraint::Min(1)].as_ref())
-                .split(middle_chunks[0]);
+            // TODO make use of focused_panel here
+            let list_chunks = generate_favourites_layout(content_area[0]);
 
             frame.render_widget(
                 generate_title(
@@ -194,75 +164,42 @@ pub fn render_home<B: Backend>(
                 list_chunks[0],
             );
 
+            // TODO should this be a part of State?
             let mut list_state: ListState = ListState::default();
             list_state.select(Some(*channel_highlight));
 
             frame.render_stateful_widget(
-                generate_favourites_widget(theme, &channels, middle_chunks[0].width),
+                generate_favourites_widget(theme, &channels, content_area[0].width),
                 list_chunks[1],
                 &mut list_state,
             );
 
-            let search_chunks_margin = Layout::default()
+            let search_chunks_with_margin = Layout::default()
                 .direction(Direction::Horizontal)
                 .constraints([Constraint::Length(HORIZONTAL_MARGIN), Constraint::Min(1)].as_ref())
-                .split(middle_chunks[1]);
+                .split(content_area[1]);
 
-            // TODO make this function
-            let search_background = Block::default()
-                .title("")
-                .style(Style::default().bg(theme.elevation(Elevation::Level2).as_tui_colour()));
+            frame.render_widget(
+                generate_background_widget(theme.elevation(Elevation::Level2).as_tui_colour()),
+                search_chunks_with_margin[1],
+            );
 
-            frame.render_widget(search_background, search_chunks_margin[1]);
-
-            let search_chunks = Layout::default()
-                .direction(Direction::Horizontal)
-                .constraints(
-                    [
-                        Constraint::Percentage(7),
-                        Constraint::Min(1),
-                        Constraint::Percentage(5),
-                    ]
-                    .as_ref(),
-                )
-                .split(search_chunks_margin[1]);
-
-            let inner_search_chunks = Layout::default()
-                .direction(Direction::Vertical)
-                .constraints(
-                    [
-                        Constraint::Percentage(42),
-                        Constraint::Length(3),
-                        Constraint::Min(1),
-                    ]
-                    .as_ref(),
-                )
-                .split(search_chunks[1]);
+            let search_chunks = generate_search_layout(search_chunks_with_margin[1]);
 
             frame.render_widget(
                 generate_channel_search(theme, search_input),
-                inner_search_chunks[1],
+                search_chunks[1],
             );
         }
         Tab::Follows => {
             frame.render_widget(
-                generate_follows_widget(theme, &channels, middle_chunks[0].width),
-                middle_chunks[0],
+                generate_follows_widget(theme, &channels, content_area[0].width),
+                content_area[0],
             );
         }
     }
 
-    let info_text = vec![Spans::from(vec![Span::styled(
-        format!("Twitch Launcher {} ", Local::now().year()),
-        Style::default().add_modifier(Modifier::ITALIC),
-    )])];
-
-    let info = Paragraph::new(info_text)
-        .style(Style::default().fg((&theme.primary).as_tui_colour()))
-        .alignment(Alignment::Right)
-        .block(Block::default().style(Style::default()).title(""));
-
-    frame.render_widget(info, chunks[3]);
+    frame.render_widget(generate_info_widget(theme), app_layout[3]);
 }
 
 fn generate_favourites_widget<'a>(
@@ -274,11 +211,11 @@ fn generate_favourites_widget<'a>(
         .iter()
         .map(|a| {
             let status_style = match a.status {
-                ChannelStatus::Online => Style::default().fg((&theme.secondary).as_tui_colour()),
+                ChannelStatus::Online => Style::default().fg(theme.secondary.as_tui_colour()),
                 ChannelStatus::Offline => Style::default()
                     .fg((&theme.text).as_tui_colour())
                     .add_modifier(Modifier::DIM),
-                ChannelStatus::Unknown => Style::default().fg((&theme.text).as_tui_colour()),
+                ChannelStatus::Unknown => Style::default().fg(theme.text.as_tui_colour()),
             };
 
             ListItem::new(Spans::from(vec![
@@ -288,7 +225,7 @@ fn generate_favourites_widget<'a>(
                         a.friendly_name.as_str(),
                         text_width = min((width as usize) - a.status.message().len() - 5, 25),
                     ),
-                    Style::default().fg((&theme.text).as_tui_colour()),
+                    Style::default().fg(theme.text.as_tui_colour()),
                 ),
                 Span::styled(format!("{}", a.status.message()), status_style),
             ]))
@@ -296,7 +233,7 @@ fn generate_favourites_widget<'a>(
         .collect();
 
     List::new(items)
-        .block(Block::default().style(Style::default().fg((&theme.text).as_tui_colour())))
+        .block(Block::default().style(Style::default().fg(theme.text.as_tui_colour())))
         .style(Style::default().bg(theme.elevation(Elevation::Level2).as_tui_colour()))
         .highlight_style(Style::default().add_modifier(Modifier::BOLD))
         .highlight_symbol(" >")
@@ -312,7 +249,7 @@ fn generate_follows_widget<'a>(
         .alignment(Alignment::Center)
         .block(
             Block::default()
-                .style(Style::default().fg(Color::White))
+                .style(Style::default().fg(theme.text.as_tui_colour()))
                 .title(""),
         )
 }
@@ -342,7 +279,7 @@ fn generate_title<'a>(title: &str, bg_colour: Color, text_colour: Color) -> Para
     .alignment(Alignment::Left)
 }
 
-fn generate_popup<'a>(r: Rect) -> Rect {
+fn generate_popup_layout<'a>(r: Rect) -> Rect {
     let layout = Layout::default()
         .direction(Direction::Vertical)
         .constraints(
@@ -368,15 +305,111 @@ fn generate_popup<'a>(r: Rect) -> Rect {
         .split(layout[1])[1]
 }
 
-fn generate_channel_search<'a>(theme: &Theme, search_input: &'a String) -> Paragraph<'a> {
-    Paragraph::new(search_input.as_str()).block(
+fn generate_channel_search<'a>(theme: &Theme, search_input: &Vec<char>) -> Paragraph<'a> {
+    let input_string: String = search_input.iter().collect();
+
+    Paragraph::new(input_string).block(
         Block::default()
             .borders(Borders::ALL)
             .title(Span::styled(
                 "Search Channel",
-                Style::default().fg((&theme.text).as_tui_colour()),
+                Style::default().fg(theme.text.as_tui_colour()),
             ))
-            .border_style(Style::default().fg((&theme.primary).as_tui_colour()))
+            .border_style(Style::default().fg(theme.primary.as_tui_colour()))
             .style(Style::default().bg(theme.elevation(Elevation::Level2).as_tui_colour())),
     )
+}
+
+fn generate_background_widget<'a>(colour: Color) -> Block<'a> {
+    Block::default()
+        .title("")
+        .style(Style::default().bg(colour))
+}
+
+fn generate_app_layout(area: Rect) -> Vec<Rect> {
+    Layout::default()
+        .direction(Direction::Vertical)
+        .horizontal_margin(HORIZONTAL_MARGIN)
+        .vertical_margin(VERTICAL_MARGIN)
+        .constraints(
+            [
+                Constraint::Length(3), // Header
+                Constraint::Length(1), // Empty Area
+                Constraint::Min(0),    // Content Area
+                Constraint::Length(2), // Footer
+            ]
+            .as_ref(),
+        )
+        .split(area)
+}
+
+fn generate_content_area_layout(area: Rect) -> Vec<Rect> {
+    Layout::default()
+        .direction(Direction::Horizontal)
+        .horizontal_margin(HORIZONTAL_MARGIN)
+        .vertical_margin(VERTICAL_MARGIN)
+        .constraints([Constraint::Percentage(30), Constraint::Min(1)].as_ref())
+        .split(area)
+}
+
+fn generate_tabs_widget<'a>(menu: Vec<Spans<'a>>, tab: &usize, theme: &Theme) -> Tabs<'a> {
+    Tabs::new(menu)
+        .select(*tab)
+        .block(Block::default().title(""))
+        .style(
+            Style::default()
+                .fg(theme.text.as_tui_colour())
+                .bg(theme.elevation(Elevation::Level1).as_tui_colour()),
+        )
+        .highlight_style(
+            Style::default()
+                .fg(theme.primary.as_tui_colour())
+                .add_modifier(Modifier::BOLD),
+        )
+        .divider(Span::raw(""))
+}
+
+fn generate_favourites_layout(area: Rect) -> Vec<Rect> {
+    Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Length(3), Constraint::Min(1)].as_ref())
+        .split(area)
+}
+
+fn generate_search_layout(area: Rect) -> Vec<Rect> {
+    let search_chunks = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints(
+            [
+                Constraint::Percentage(7), // Left Margin
+                Constraint::Min(1),        // Search Bar
+                Constraint::Percentage(5), // Right Margin
+            ]
+            .as_ref(),
+        )
+        .split(area);
+
+    Layout::default()
+        .direction(Direction::Vertical)
+        .constraints(
+            [
+                Constraint::Percentage(42), // Top Margin
+                Constraint::Length(3),      // Search Bar
+                Constraint::Min(1),         // Bottom Margin
+            ]
+            .as_ref(),
+        )
+        .split(search_chunks[1])
+}
+
+fn generate_info_widget<'a>(theme: &Theme) -> Paragraph<'a> {
+    let info_text = vec![Spans::from(vec![Span::styled(
+        format!("Twitch Launcher {} ", Local::now().year()),
+        Style::default().add_modifier(Modifier::ITALIC),
+    )])];
+
+    Paragraph::new(info_text)
+        .style(Style::default().fg(theme.primary.as_tui_colour()))
+        .alignment(Alignment::Right)
+        .block(Block::default().style(Style::default()).title(""))
 }
