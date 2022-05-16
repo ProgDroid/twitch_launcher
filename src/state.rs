@@ -1,6 +1,6 @@
 use crate::{
     channel::{load_channels, Channel, ChannelStatus},
-    handler::{keybinds_exit, keybinds_home, keybinds_startup, KeyBindFn},
+    handler::{keybinds_exit, keybinds_home, keybinds_startup, keybinds_typing, KeyBindFn},
     panel::HomePanel,
     popup::Popup,
     render,
@@ -17,7 +17,7 @@ use tui::{backend::Backend, terminal::Frame};
 pub enum Event {
     AccountLoaded,
     Exited,
-    ChannelSelected,
+    ChannelSelected(Channel, bool),
 }
 
 pub enum StateMachine {
@@ -30,12 +30,13 @@ pub enum StateMachine {
     },
     Home {
         tab: usize,
-        tab_titles: [&'static str; 2],
+        tab_titles: [&'static str; 1],
         channel_highlight: usize,
         channels: Vec<Channel>,
         twitch_account: Option<TwitchAccount>,
         channel_check: mpsc::Receiver<(String, ChannelStatus)>,
         popup: Option<Popup>,
+        typing: bool,
         search_input: Vec<char>,
         focused_panel: HomePanel,
     },
@@ -59,7 +60,13 @@ impl State for StateMachine {
     fn keybinds(&self, key_event: KeyEvent) -> Option<KeyBindFn> {
         match self {
             StateMachine::Startup { .. } => keybinds_startup(key_event),
-            StateMachine::Home { .. } => keybinds_home(key_event),
+            StateMachine::Home { typing, .. } => {
+                if *typing {
+                    keybinds_typing(key_event)
+                } else {
+                    keybinds_home(key_event)
+                }
+            }
             StateMachine::Exit => keybinds_exit(key_event),
         }
     }
@@ -125,6 +132,7 @@ impl State for StateMachine {
                 channel_highlight,
                 channels,
                 popup,
+                typing,
                 search_input,
                 focused_panel,
                 ..
@@ -136,6 +144,7 @@ impl State for StateMachine {
                 channel_highlight,
                 channels,
                 popup,
+                typing,
                 search_input,
                 focused_panel,
             ),
@@ -150,7 +159,7 @@ impl State for StateMachine {
 
                 Some(StateMachine::Home {
                     tab: 0,
-                    tab_titles: ["Home", "Follows"], // TODO make default const?
+                    tab_titles: ["Home"], // TODO make default const?
                     channel_highlight: 0,
                     channels,
                     twitch_account: Some(TwitchAccount {
@@ -185,32 +194,20 @@ impl State for StateMachine {
                     }),
                     channel_check,
                     popup: None,
+                    typing: false,
                     search_input: Vec::new(),
                     focused_panel: HomePanel::default(),
                 })
             }
             (StateMachine::Home { .. }, Event::Exited) => Some(StateMachine::Exit),
-            (
-                StateMachine::Home {
-                    channel_highlight,
-                    channels,
-                    ..
-                },
-                Event::ChannelSelected,
-            ) => {
-                match channels[*channel_highlight].launch() {
-                    (Ok(_), Ok(_)) => {}
-                    (Ok(_), Err(e)) => {
+            (StateMachine::Home { .. }, Event::ChannelSelected(channel, chat)) => {
+                if let Err(e) = channel.launch() {
+                    eprintln!("Error opening stream: {}", e);
+                }
+
+                if chat {
+                    if let Err(e) = channel.launch_chat() {
                         eprintln!("Error opening chat: {}", e);
-                    }
-                    (Err(e), Ok(_)) => {
-                        eprintln!("Error opening stream: {}", e);
-                    }
-                    (Err(e_stream), Err(e_chat)) => {
-                        eprintln!(
-                            "Error opening stream: {}\nError opening chat: {}",
-                            e_stream, e_chat
-                        );
                     }
                 }
 

@@ -162,6 +162,7 @@ pub struct Theme {
     pub primary: CustomColour,
     pub secondary: CustomColour,
     pub text: CustomColour,
+    pub text_dimmed: CustomColour,
 }
 
 impl Theme {
@@ -175,6 +176,7 @@ impl Theme {
             primary: CustomColour::from(Color::Yellow),
             secondary: CustomColour::from(Color::LightRed).blend(BLACK, 0.1),
             text: WHITE,
+            text_dimmed: WHITE.blend(BLACK, 0.5),
         }
     }
 }

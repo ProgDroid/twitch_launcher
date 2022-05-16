@@ -94,15 +94,16 @@ pub fn account_missing<B: Backend>(theme: &Theme, frame: &mut Frame<'_, B>, time
     );
 }
 
-// ? TODO this might need splitting
+// ? TODO this might need splitting up
 pub fn render_home<B: Backend>(
     theme: &Theme,
     frame: &mut Frame<'_, B>,
     tab: &usize,
-    tab_titles: &[&'static str; 2],
+    tab_titles: &[&'static str; 1],
     channel_highlight: &usize,
     channels: &Vec<Channel>,
     popup: &Option<Popup>,
+    typing: &bool,
     search_input: &Vec<char>,
     focused_panel: &HomePanel,
 ) {
@@ -152,14 +153,17 @@ pub fn render_home<B: Backend>(
 
     match Tab::from(*tab) {
         Tab::Home => {
-            // TODO make use of focused_panel here
             let list_chunks = generate_favourites_layout(content_area[0]);
+
+            let favourites_focused = *focused_panel == HomePanel::Favourites;
+            let search_focused = *focused_panel == HomePanel::Search;
 
             frame.render_widget(
                 generate_title(
                     "Favourites",
                     theme.elevation(Elevation::Level2).as_tui_colour(),
                     (&theme.primary).as_tui_colour(),
+                    favourites_focused,
                 ),
                 list_chunks[0],
             );
@@ -169,7 +173,12 @@ pub fn render_home<B: Backend>(
             list_state.select(Some(*channel_highlight));
 
             frame.render_stateful_widget(
-                generate_favourites_widget(theme, &channels, content_area[0].width),
+                generate_favourites_widget(
+                    theme,
+                    &channels,
+                    content_area[0].width,
+                    favourites_focused,
+                ),
                 list_chunks[1],
                 &mut list_state,
             );
@@ -187,15 +196,15 @@ pub fn render_home<B: Backend>(
             let search_chunks = generate_search_layout(search_chunks_with_margin[1]);
 
             frame.render_widget(
-                generate_channel_search(theme, search_input),
+                generate_channel_search(theme, search_input, typing, search_focused),
                 search_chunks[1],
             );
         }
         Tab::Follows => {
-            frame.render_widget(
-                generate_follows_widget(theme, &channels, content_area[0].width),
-                content_area[0],
-            );
+            // frame.render_widget(
+            //     generate_follows_widget(theme, &channels, content_area[0].width),
+            //     content_area[0],
+            // );
         }
     }
 
@@ -206,16 +215,20 @@ fn generate_favourites_widget<'a>(
     theme: &Theme,
     channels: &'a Vec<Channel>,
     width: u16,
+    focused: bool,
 ) -> List<'a> {
+    let online_style = Style::default().fg(theme.secondary.as_tui_colour());
+    let offline_style = Style::default().fg((&theme.text_dimmed).as_tui_colour());
+    let unknown_status_style = Style::default().fg(theme.text.as_tui_colour());
+    let text_style = Style::default().fg(theme.text.as_tui_colour());
+
     let items: Vec<ListItem<'a>> = channels
         .iter()
         .map(|a| {
             let status_style = match a.status {
-                ChannelStatus::Online => Style::default().fg(theme.secondary.as_tui_colour()),
-                ChannelStatus::Offline => Style::default()
-                    .fg((&theme.text).as_tui_colour())
-                    .add_modifier(Modifier::DIM),
-                ChannelStatus::Unknown => Style::default().fg(theme.text.as_tui_colour()),
+                ChannelStatus::Online => online_style,
+                ChannelStatus::Offline => offline_style,
+                ChannelStatus::Unknown => unknown_status_style,
             };
 
             ListItem::new(Spans::from(vec![
@@ -225,34 +238,40 @@ fn generate_favourites_widget<'a>(
                         a.friendly_name.as_str(),
                         text_width = min((width as usize) - a.status.message().len() - 5, 25),
                     ),
-                    Style::default().fg(theme.text.as_tui_colour()),
+                    text_style,
                 ),
                 Span::styled(format!("{}", a.status.message()), status_style),
             ]))
         })
         .collect();
 
+    let mut block_style = Style::default().fg(theme.text.as_tui_colour());
+
+    if !focused {
+        block_style = block_style.add_modifier(Modifier::DIM);
+    }
+
     List::new(items)
-        .block(Block::default().style(Style::default().fg(theme.text.as_tui_colour())))
+        .block(Block::default().style(block_style))
         .style(Style::default().bg(theme.elevation(Elevation::Level2).as_tui_colour()))
         .highlight_style(Style::default().add_modifier(Modifier::BOLD))
         .highlight_symbol(" >")
 }
 
-#[allow(unused_variables)] // TODO remove this when not needed
-fn generate_follows_widget<'a>(
-    theme: &Theme,
-    channels: &Vec<Channel>,
-    width: u16,
-) -> Paragraph<'a> {
-    Paragraph::new(vec![Spans::from(vec![Span::raw("Test Follows")])])
-        .alignment(Alignment::Center)
-        .block(
-            Block::default()
-                .style(Style::default().fg(theme.text.as_tui_colour()))
-                .title(""),
-        )
-}
+// #[allow(unused_variables)] // TODO remove this when not needed
+// fn generate_follows_widget<'a>(
+//     theme: &Theme,
+//     channels: &Vec<Channel>,
+//     width: u16,
+// ) -> Paragraph<'a> {
+//     Paragraph::new(vec![Spans::from(vec![Span::raw("Test Follows")])])
+//         .alignment(Alignment::Center)
+//         .block(
+//             Block::default()
+//                 .style(Style::default().fg(theme.text.as_tui_colour()))
+//                 .title(""),
+//         )
+// }
 
 fn animate_ellipsis(timer: &u64) -> String {
     format!(
@@ -261,7 +280,18 @@ fn animate_ellipsis(timer: &u64) -> String {
     )
 }
 
-fn generate_title<'a>(title: &str, bg_colour: Color, text_colour: Color) -> Paragraph<'a> {
+fn generate_title<'a>(
+    title: &str,
+    bg_colour: Color,
+    text_colour: Color,
+    focused: bool,
+) -> Paragraph<'a> {
+    let mut block_style = Style::default().bg(bg_colour);
+
+    if !focused {
+        block_style = block_style.add_modifier(Modifier::DIM);
+    }
+
     Paragraph::new(vec![
         Spans::from(vec![Span::raw("")]),
         Spans::from(vec![
@@ -274,7 +304,7 @@ fn generate_title<'a>(title: &str, bg_colour: Color, text_colour: Color) -> Para
             ),
         ]),
     ])
-    .block(Block::default().style(Style::default().bg(bg_colour)))
+    .block(Block::default().style(block_style))
     .style(Style::default())
     .alignment(Alignment::Left)
 }
@@ -305,10 +335,30 @@ fn generate_popup_layout<'a>(r: Rect) -> Rect {
         .split(layout[1])[1]
 }
 
-fn generate_channel_search<'a>(theme: &Theme, search_input: &Vec<char>) -> Paragraph<'a> {
+fn generate_channel_search<'a>(
+    theme: &Theme,
+    search_input: &Vec<char>,
+    typing: &bool,
+    focused: bool,
+) -> Paragraph<'a> {
     let input_string: String = search_input.iter().collect();
 
-    Paragraph::new(input_string).block(
+    let mut block_style = Style::default().bg(theme.elevation(Elevation::Level2).as_tui_colour());
+
+    if !focused {
+        block_style = block_style.add_modifier(Modifier::DIM);
+    }
+
+    Paragraph::new(Spans::from(vec![
+        Span::from(input_string),
+        Span::styled(
+            if *typing { " " } else { "" }, // TODO allow types of cursor per theme
+            Style::default()
+                .fg(theme.secondary.as_tui_colour())
+                .add_modifier(Modifier::BOLD | Modifier::RAPID_BLINK | Modifier::REVERSED),
+        ),
+    ]))
+    .block(
         Block::default()
             .borders(Borders::ALL)
             .title(Span::styled(
@@ -316,7 +366,7 @@ fn generate_channel_search<'a>(theme: &Theme, search_input: &Vec<char>) -> Parag
                 Style::default().fg(theme.text.as_tui_colour()),
             ))
             .border_style(Style::default().fg(theme.primary.as_tui_colour()))
-            .style(Style::default().bg(theme.elevation(Elevation::Level2).as_tui_colour())),
+            .style(block_style),
     )
 }
 

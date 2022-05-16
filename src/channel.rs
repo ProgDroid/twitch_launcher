@@ -1,13 +1,20 @@
-use crate::secret::{ExposeSecret, Secret};
-use crate::twitch_account::TwitchAccount;
+use crate::{
+    secret::{ExposeSecret, Secret},
+    twitch_account::TwitchAccount,
+};
 use serde::{Deserialize, Serialize};
-use std::fs::read_to_string;
-use std::io::Result;
-use std::process::{Command, Output};
+use std::{
+    fs::read_to_string,
+    io::Result,
+    process::{Command, Output},
+};
 use tokio;
 use tokio::sync::mpsc;
-use twitch_api2::twitch_oauth2::{client::reqwest_http_client, AccessToken, UserToken};
-use twitch_api2::{helix::streams::GetStreamsRequest, HelixClient};
+use twitch_api2::{
+    helix::streams::GetStreamsRequest,
+    twitch_oauth2::{client::reqwest_http_client, AccessToken, UserToken},
+    HelixClient,
+};
 
 const CHANNELS_FILE: &str = "channels.json";
 
@@ -68,22 +75,22 @@ impl Channel {
     }
 
     // TODO popup if channel is offline (are you sure?)
-    pub fn launch(self: &Self) -> (Result<Output>, Result<Output>) {
-        let output_stream = Command::new("powershell")
+    pub fn launch(self: &Self) -> Result<Output> {
+        Command::new("powershell")
             .arg("Start-Process")
             .arg("streamlink")
             .arg(format!("twitch.tv/{}", self.handle))
             .arg("-WindowStyle")
             .arg("Hidden")
-            .output();
+            .output()
+    }
 
-        let output_chat = Command::new("powershell")
+    pub fn launch_chat(self: &Self) -> Result<Output> {
+        Command::new("powershell")
             .arg("Start-Process")
             .arg("\"C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\Chatterino\"")
             .arg(format!("\"-c {}\"", self.handle))
-            .output();
-
-        (output_stream, output_chat)
+            .output()
     }
 }
 

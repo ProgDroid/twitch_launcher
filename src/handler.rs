@@ -1,5 +1,6 @@
 use crate::{
     app::{App, AppResult},
+    channel::{Channel, ChannelStatus},
     panel::{HomePanel, Panel},
     popup::Popup,
     state::{Event, State, StateMachine},
@@ -11,12 +12,8 @@ pub type KeyBindFn = fn(KeyEvent, &mut App) -> AppResult<()>;
 pub fn keybinds_startup(key_event: KeyEvent) -> Option<KeyBindFn> {
     match key_event.code {
         KeyCode::Esc | KeyCode::Char('q') | KeyCode::Char('Q') => Some(stop_app),
-        KeyCode::Char('d') | KeyCode::Char('D') | KeyCode::Char('c') | KeyCode::Char('C') => {
-            if key_event.modifiers == KeyModifiers::CONTROL {
-                Some(stop_app)
-            } else {
-                None
-            }
+        KeyCode::Char('c') | KeyCode::Char('C') if key_event.modifiers == KeyModifiers::CONTROL => {
+            Some(stop_app)
         }
         _ => None,
     }
@@ -25,19 +22,14 @@ pub fn keybinds_startup(key_event: KeyEvent) -> Option<KeyBindFn> {
 pub fn keybinds_home(key_event: KeyEvent) -> Option<KeyBindFn> {
     match key_event.code {
         KeyCode::Esc | KeyCode::Char('q') | KeyCode::Char('Q') => Some(stop_app),
-        KeyCode::Char('c') | KeyCode::Char('C') => {
-            if key_event.modifiers == KeyModifiers::CONTROL {
-                Some(stop_app)
-            } else {
-                None
-            }
+        KeyCode::Char('c') | KeyCode::Char('C') if key_event.modifiers == KeyModifiers::CONTROL => {
+            Some(stop_app)
         }
         KeyCode::Tab => Some(tab_right),
         KeyCode::BackTab => Some(tab_left),
         KeyCode::Char('s') | KeyCode::Char('S') | KeyCode::Down => Some(highlight_down),
         KeyCode::Char('w') | KeyCode::Char('W') | KeyCode::Up => Some(highlight_up),
         KeyCode::Enter | KeyCode::Char(' ') => Some(select),
-        KeyCode::Char('p') => Some(test_popup),
         KeyCode::Char('a') | KeyCode::Char('A') | KeyCode::Left => Some(panel_left),
         KeyCode::Char('d') | KeyCode::Char('D') | KeyCode::Right => Some(panel_right),
         _ => None,
@@ -48,6 +40,18 @@ pub fn keybinds_exit(_: KeyEvent) -> Option<KeyBindFn> {
     None
 }
 
+pub fn keybinds_typing(key_event: KeyEvent) -> Option<KeyBindFn> {
+    match key_event.code {
+        KeyCode::Char('c') | KeyCode::Char('C') if key_event.modifiers == KeyModifiers::CONTROL => {
+            Some(stop_app)
+        }
+        KeyCode::Esc => Some(stop_typing),
+        KeyCode::Enter => Some(submit_search),
+        KeyCode::Backspace => Some(remove_from_search_input),
+        _ => Some(add_to_search_input),
+    }
+}
+
 pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
     match app.state.keybinds(key_event) {
         Some(function) => (function)(key_event, app),
@@ -55,16 +59,7 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
     }
 }
 
-fn stop_app(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
-    match key_event.code {
-        KeyCode::Char('d') | KeyCode::Char('D') | KeyCode::Char('c') | KeyCode::Char('C') => {
-            if key_event.modifiers != KeyModifiers::CONTROL {
-                return Ok(());
-            }
-        }
-        _ => {}
-    }
-
+fn stop_app(_: KeyEvent, app: &mut App) -> AppResult<()> {
     app.events.push_back(Event::Exited);
     Ok(())
 }
@@ -147,26 +142,23 @@ fn highlight_up(_: KeyEvent, app: &mut App) -> AppResult<()> {
 
 fn select(_: KeyEvent, app: &mut App) -> AppResult<()> {
     match &mut app.state {
-        StateMachine::Home { focused_panel, .. } => match focused_panel {
+        StateMachine::Home {
+            channels,
+            channel_highlight,
+            focused_panel,
+            ref mut typing,
+            ..
+        } => match focused_panel {
             HomePanel::Favourites => {
-                app.events.push_back(Event::ChannelSelected);
+                app.events.push_back(Event::ChannelSelected(
+                    channels[*channel_highlight].clone(),
+                    true,
+                ));
             }
-            HomePanel::Search => {}
+            HomePanel::Search => {
+                *typing = true;
+            }
         },
-        _ => {}
-    }
-
-    Ok(())
-}
-
-fn test_popup(_: KeyEvent, app: &mut App) -> AppResult<()> {
-    match app.state {
-        StateMachine::Home { ref mut popup, .. } => {
-            *popup = Some(Popup {
-                title: String::from("Test"),
-                message: String::from("This is a test popup"),
-            });
-        }
         _ => {}
     }
 
@@ -188,6 +180,92 @@ fn panel_right(_: KeyEvent, app: &mut App) -> AppResult<()> {
     match &mut app.state {
         StateMachine::Home { focused_panel, .. } => {
             *focused_panel = focused_panel.right();
+        }
+        _ => {}
+    }
+
+    Ok(())
+}
+
+fn stop_typing(_: KeyEvent, app: &mut App) -> AppResult<()> {
+    match &mut app.state {
+        StateMachine::Home { typing, .. } => {
+            *typing = false;
+        }
+        _ => {}
+    }
+
+    Ok(())
+}
+
+fn submit_search(_: KeyEvent, app: &mut App) -> AppResult<()> {
+    match &mut app.state {
+        StateMachine::Home {
+            typing,
+            search_input,
+            channels,
+            ..
+        } => {
+            *typing = false;
+
+            let handle: String = search_input.iter().collect();
+
+            // TODO allow setting to determine whether to launch on browser or locally
+            if let Some(index) = channels.iter().position(|channel| channel.handle == handle) {
+                app.events.push_back(Event::ChannelSelected(
+                    channels[index].clone(),
+                    true, /* chat */
+                ));
+            } else {
+                let channel = Channel {
+                    friendly_name: String::new(),
+                    handle,
+                    status: ChannelStatus::Unknown,
+                };
+
+                app.events
+                    .push_back(Event::ChannelSelected(channel, true /* chat */));
+            }
+        }
+        _ => {}
+    }
+
+    Ok(())
+}
+
+fn remove_from_search_input(_: KeyEvent, app: &mut App) -> AppResult<()> {
+    match &mut app.state {
+        StateMachine::Home {
+            typing,
+            search_input,
+            ..
+        } => {
+            if !*typing {
+                return Ok(());
+            }
+
+            search_input.pop();
+        }
+        _ => {}
+    }
+
+    Ok(())
+}
+
+fn add_to_search_input(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
+    match &mut app.state {
+        StateMachine::Home {
+            typing,
+            search_input,
+            ..
+        } => {
+            if !*typing {
+                return Ok(());
+            }
+
+            if let KeyCode::Char(c) = key_event.code {
+                search_input.push(c);
+            }
         }
         _ => {}
     }
