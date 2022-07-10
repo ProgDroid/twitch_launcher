@@ -11,8 +11,8 @@ use std::{
 use tokio;
 use tokio::sync::mpsc;
 use twitch_api2::{
-    helix::streams::GetStreamsRequest,
-    twitch_oauth2::{client::reqwest_http_client, AccessToken, UserToken},
+    helix::streams::get_streams,
+    twitch_oauth2::{AccessToken, UserToken},
     HelixClient,
 };
 
@@ -54,17 +54,18 @@ impl Channel {
     pub async fn update_status(handle: String, user_access_token: Secret) -> ChannelStatus {
         let token = AccessToken::new(user_access_token.expose_value().to_string());
 
-        let token = match UserToken::from_existing(reqwest_http_client, token, None, None).await {
-            Ok(token) => token,
-            Err(_) => {
-                return ChannelStatus::Offline;
-            }
-        };
-
         let client: HelixClient<reqwest::Client> = HelixClient::new();
 
-        let req = GetStreamsRequest::builder()
-            .user_login(vec![handle])
+        let token =
+            match UserToken::from_existing(&reqwest::Client::default(), token, None, None).await {
+                Ok(token) => token,
+                Err(_) => {
+                    return ChannelStatus::Offline;
+                }
+            };
+
+        let req = get_streams::GetStreamsRequest::builder()
+            .user_login(vec![handle.into()])
             .build();
 
         let response = match client.req_get(req, &token).await {
@@ -133,4 +134,3 @@ pub fn load_channels(
 
 // TODO need to add account configuration
 // TODO github actions to check code?
-// TODO upgrade twitch api crate

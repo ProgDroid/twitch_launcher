@@ -3,6 +3,8 @@ name = "twitch_launcher"
 version = "0.3.0"
 authors = ["ProgDroid"]
 edition = "2021"
+rust-version = "1.60"
+repository = "https://github.com/ProgDroid/twitch_launcher"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -23,5 +25,5 @@ version = "1.17"
 features = ["full"]
 
 [dependencies.twitch_api2]
-version = "0.5"
-features = ["twitch_oauth2", "helix", "client", "reqwest_client"]
+version = "0.6.1"
+features = ["twitch_oauth2", "helix", "client", "reqwest"]

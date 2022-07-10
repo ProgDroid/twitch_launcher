@@ -3,11 +3,12 @@ use serde::{Deserialize, Serialize};
 use std::fs::{read_to_string, write};
 use std::io::{Error, ErrorKind, Result};
 use twitch_api2::twitch_oauth2::{
-    client::reqwest_http_client, refresh_token, AccessToken, ClientId, ClientSecret, RefreshToken,
-    UserToken,
+    refresh_token, AccessToken, ClientId, ClientSecret, RefreshToken, UserToken,
 };
 
 const ACCOUNT_FILE: &str = "account.json";
+
+// TODO look into TwitchToken
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct TwitchAccount {
@@ -41,12 +42,12 @@ impl TwitchAccount {
 async fn check_token(twitch_account: &mut TwitchAccount) -> Result<()> {
     let token = AccessToken::new(twitch_account.user_access_token.expose_value().to_string());
 
-    match UserToken::from_existing(reqwest_http_client, token, None, None).await {
+    match UserToken::from_existing(&reqwest::Client::default(), token, None, None).await {
         Ok(_) => Ok(()),
         Err(_) => {
             match refresh_token(
-                reqwest_http_client,
-                RefreshToken::new(twitch_account.refresh_token.expose_value().to_string()),
+                &reqwest::Client::default(),
+                &RefreshToken::new(twitch_account.refresh_token.expose_value().to_string()),
                 &ClientId::new(twitch_account.client_id.expose_value().to_string()),
                 &ClientSecret::new(twitch_account.client_secret.expose_value().to_string()),
             )
