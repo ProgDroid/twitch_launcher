@@ -3,6 +3,7 @@ use crate::{
     keybind::Keybind,
     panel::HomePanel,
     popup::Popup,
+    state::TabTitles,
     theme::{Elevation, Theme},
 };
 use std::cmp::{max, min};
@@ -99,7 +100,7 @@ pub fn render_home<B: Backend>(
     theme: &Theme,
     frame: &mut Frame<'_, B>,
     tab: &usize,
-    tab_titles: &[&'static str; 1],
+    tab_titles: &TabTitles,
     channel_highlight: &usize,
     channels: &Vec<Channel>,
     popup: &Option<Popup>,
@@ -169,7 +170,6 @@ pub fn render_home<B: Backend>(
                 list_chunks[0],
             );
 
-            // TODO should this be a part of State?
             let mut list_state: ListState = ListState::default();
             list_state.select(Some(*channel_highlight));
 

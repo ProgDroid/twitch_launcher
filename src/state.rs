@@ -14,7 +14,7 @@ use std::collections::VecDeque;
 use tokio::sync::mpsc;
 use tui::{backend::Backend, terminal::Frame};
 
-type TabTitles = [&'static str; 1];
+pub type TabTitles = [&'static str; 1];
 
 const TAB_TITLES: TabTitles = ["Home"];
 
