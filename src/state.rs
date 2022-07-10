@@ -157,7 +157,17 @@ impl State for StateMachine {
     fn transition(&self, event: Event) -> Option<StateMachine> {
         match (self, event) {
             (StateMachine::Startup { twitch_account, .. }, Event::AccountLoaded) => {
-                let (channels, channel_check) = load_channels(twitch_account.as_ref().unwrap());
+                let (channels, channel_check) = match load_channels(
+                    twitch_account
+                        .as_ref()
+                        .expect("Made it past startup without loading Twitch account"),
+                ) {
+                    Ok((channels, channel_check)) => (channels, channel_check),
+                    Err(e) => {
+                        eprintln!("Error loading channels: {}", e);
+                        return Some(StateMachine::Exit);
+                    }
+                };
 
                 Some(StateMachine::Home {
                     tab: 0,

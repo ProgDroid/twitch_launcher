@@ -99,11 +99,10 @@ impl Channel {
 // TODO consider returning result here? handle not being able to deserialise JSON
 pub fn load_channels(
     twitch_account: &TwitchAccount,
-) -> (Vec<Channel>, mpsc::Receiver<(String, ChannelStatus)>) {
-    let data: String = read_to_string(CHANNELS_FILE).expect("Could not read file");
+) -> Result<(Vec<Channel>, mpsc::Receiver<(String, ChannelStatus)>)> {
+    let data: String = read_to_string(CHANNELS_FILE)?;
 
-    let channels: Vec<Channel> =
-        serde_json::from_str(data.as_str()).expect("Could not deserialise channels JSON");
+    let channels: Vec<Channel> = serde_json::from_str(data.as_str())?;
 
     let (sender, receiver) = mpsc::channel(channels.len());
 
@@ -124,7 +123,7 @@ pub fn load_channels(
         });
     }
 
-    (channels, receiver)
+    Ok((channels, receiver))
 }
 
 // TODO need to add account configuration
