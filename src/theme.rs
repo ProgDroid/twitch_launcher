@@ -1,5 +1,5 @@
 use num::clamp;
-use tui::style::Color;
+use tui::style::{Color, Modifier};
 
 #[derive(Debug)]
 pub struct CustomColour {
@@ -157,12 +157,28 @@ const BLACK: CustomColour = CustomColour { r: 0, g: 0, b: 0 };
 const ELEVATION: [f32; 10] = [0.0, 0.05, 0.07, 0.08, 0.09, 0.11, 0.12, 0.14, 0.15, 0.16];
 
 #[derive(Debug)]
+pub struct Cursor {
+    pub cursor: String,
+    pub modifier: Modifier,
+}
+
+impl Default for Cursor {
+    fn default() -> Self {
+        Cursor {
+            cursor: String::from(" "),
+            modifier: Modifier::BOLD | Modifier::RAPID_BLINK | Modifier::REVERSED,
+        }
+    }
+}
+
+#[derive(Debug)]
 pub struct Theme {
     pub background: CustomColour,
     pub primary: CustomColour,
     pub secondary: CustomColour,
     pub text: CustomColour,
     pub text_dimmed: CustomColour,
+    pub cursor: Cursor,
 }
 
 impl Default for Theme {
@@ -173,6 +189,7 @@ impl Default for Theme {
             secondary: CustomColour::from(Color::LightRed).blend(BLACK, 0.1),
             text: WHITE,
             text_dimmed: WHITE.blend(BLACK, 0.5),
+            cursor: Cursor::default(),
         }
     }
 }

@@ -358,10 +358,14 @@ fn generate_channel_search<'a>(
     Paragraph::new(Spans::from(vec![
         Span::from(input_string),
         Span::styled(
-            if *typing { " " } else { "" }, // TODO allow types of cursor per theme
+            if *typing {
+                String::from(&theme.cursor.cursor)
+            } else {
+                String::from("")
+            },
             Style::default()
                 .fg(theme.secondary.as_tui_colour())
-                .add_modifier(Modifier::BOLD | Modifier::RAPID_BLINK | Modifier::REVERSED),
+                .add_modifier(theme.cursor.modifier),
         ),
     ]))
     .block(
