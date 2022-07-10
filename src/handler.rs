@@ -1,66 +1,92 @@
 use crate::{
     app::{App, AppResult},
     channel::{Channel, ChannelStatus},
+    keybind::{KeyBindFn, Keybind},
     panel::{HomePanel, Panel},
-    popup::Popup,
     state::{Event, State, StateMachine},
 };
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
-pub type KeyBindFn = fn(KeyEvent, &mut App) -> AppResult<()>;
-
-pub fn keybinds_startup(key_event: KeyEvent) -> Option<KeyBindFn> {
-    match key_event.code {
-        KeyCode::Esc | KeyCode::Char('q') | KeyCode::Char('Q') => Some(stop_app),
-        KeyCode::Char('c') | KeyCode::Char('C') if key_event.modifiers == KeyModifiers::CONTROL => {
-            Some(stop_app)
-        }
-        _ => None,
-    }
+pub fn keybinds_startup() -> Vec<Keybind> {
+    quit_binds()
 }
 
-pub fn keybinds_home(key_event: KeyEvent) -> Option<KeyBindFn> {
-    match key_event.code {
-        KeyCode::Esc | KeyCode::Char('q') | KeyCode::Char('Q') => Some(stop_app),
-        KeyCode::Char('c') | KeyCode::Char('C') if key_event.modifiers == KeyModifiers::CONTROL => {
-            Some(stop_app)
-        }
-        KeyCode::Tab => Some(tab_right),
-        KeyCode::BackTab => Some(tab_left),
-        KeyCode::Char('s') | KeyCode::Char('S') | KeyCode::Down => Some(highlight_down),
-        KeyCode::Char('w') | KeyCode::Char('W') | KeyCode::Up => Some(highlight_up),
-        KeyCode::Enter | KeyCode::Char(' ') => Some(select),
-        KeyCode::Char('a') | KeyCode::Char('A') | KeyCode::Left => Some(panel_left),
-        KeyCode::Char('d') | KeyCode::Char('D') | KeyCode::Right => Some(panel_right),
-        _ => None,
-    }
+// TODO handle failure to check status
+
+pub fn keybinds_home() -> Vec<Keybind> {
+    let mut binds = quit_binds();
+
+    binds.append(&mut tab_move_binds());
+
+    binds.append(&mut highlight_move_binds());
+
+    binds.append(&mut select_binds());
+
+    binds.append(&mut panel_move_binds());
+
+    binds
 }
 
-pub fn keybinds_exit(_: KeyEvent) -> Option<KeyBindFn> {
-    None
+pub fn keybinds_exit() -> Vec<Keybind> {
+    Vec::new()
 }
 
-pub fn keybinds_typing(key_event: KeyEvent) -> Option<KeyBindFn> {
-    match key_event.code {
-        KeyCode::Char('c') | KeyCode::Char('C') if key_event.modifiers == KeyModifiers::CONTROL => {
-            Some(stop_app)
-        }
-        KeyCode::Esc => Some(stop_typing),
-        KeyCode::Enter => Some(submit_search),
-        KeyCode::Backspace => Some(remove_from_search_input),
-        _ => Some(add_to_search_input),
-    }
+pub fn keybinds_typing() -> Vec<Keybind> {
+    vec![
+        Keybind {
+            triggers: vec![
+                KeyEvent::new(KeyCode::Char('c'), KeyModifiers::CONTROL),
+                KeyEvent::new(KeyCode::Char('C'), KeyModifiers::CONTROL),
+            ],
+            action: stop_app,
+        },
+        Keybind {
+            triggers: vec![KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE)],
+            action: stop_typing,
+        },
+        Keybind {
+            triggers: vec![KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE)],
+            action: submit_search,
+        },
+        Keybind {
+            triggers: vec![KeyEvent::new(KeyCode::Backspace, KeyModifiers::NONE)],
+            action: remove_from_search_input,
+        },
+    ]
 }
 
 pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
-    match app.state.keybinds(key_event) {
-        Some(function) => (function)(key_event, app),
-        None => Ok(()),
+    if let Some(keybind) = app
+        .state
+        .keybinds()
+        .iter()
+        .find(|&bind| bind.triggers.contains(&key_event))
+    {
+        return (keybind.action)(key_event, app);
+    }
+
+    match app.state {
+        StateMachine::Home { typing, .. } if typing => {
+            return add_to_search_input(key_event, app);
+        }
+        _ => return Ok(()),
     }
 }
 
 fn stop_app(_: KeyEvent, app: &mut App) -> AppResult<()> {
     app.events.push_back(Event::Exited);
+    Ok(())
+}
+
+fn cycle_tabs(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
+    if get_tab_right_keys().contains(&key_event) {
+        return tab_right(key_event, app);
+    }
+
+    if get_tab_left_keys().contains(&key_event) {
+        return tab_left(key_event, app);
+    }
+
     Ok(())
 }
 
@@ -97,6 +123,18 @@ fn tab_left(_: KeyEvent, app: &mut App) -> AppResult<()> {
     Ok(())
 }
 
+fn cycle_highlights(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
+    if get_highlights_down_keys().contains(&key_event) {
+        return highlight_down(key_event, app);
+    }
+
+    if get_highlights_up_keys().contains(&key_event) {
+        return highlight_up(key_event, app);
+    }
+
+    Ok(())
+}
+
 // ? TODO Maybe add CTRL modifier to go all the way to the bottom?
 fn highlight_down(_: KeyEvent, app: &mut App) -> AppResult<()> {
     match &mut app.state {
@@ -116,7 +154,6 @@ fn highlight_down(_: KeyEvent, app: &mut App) -> AppResult<()> {
     Ok(())
 }
 
-// ? TODO Should these be made more generic? Sub function to do calculation and just passing relevant things in
 fn highlight_up(_: KeyEvent, app: &mut App) -> AppResult<()> {
     match &mut app.state {
         StateMachine::Home {
@@ -160,6 +197,18 @@ fn select(_: KeyEvent, app: &mut App) -> AppResult<()> {
             }
         },
         _ => {}
+    }
+
+    Ok(())
+}
+
+fn cycle_panels(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
+    if get_panels_left_keys().contains(&key_event) {
+        return panel_left(key_event, app);
+    }
+
+    if get_panels_right_keys().contains(&key_event) {
+        return panel_right(key_event, app);
     }
 
     Ok(())
@@ -271,4 +320,141 @@ fn add_to_search_input(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
     }
 
     Ok(())
+}
+
+fn quit_binds() -> Vec<Keybind> {
+    vec![Keybind {
+        triggers: vec![
+            KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE),
+            KeyEvent::new(KeyCode::Char('q'), KeyModifiers::NONE),
+            KeyEvent::new(KeyCode::Char('Q'), KeyModifiers::SHIFT),
+            KeyEvent::new(KeyCode::Char('c'), KeyModifiers::CONTROL),
+            KeyEvent::new(
+                KeyCode::Char('C'),
+                KeyModifiers::CONTROL | KeyModifiers::SHIFT,
+            ),
+        ],
+        action: stop_app,
+    }]
+}
+
+fn tab_move_binds() -> Vec<Keybind> {
+    let mut triggers: Vec<KeyEvent> = get_tab_right_keys();
+
+    triggers.append(&mut get_tab_left_keys());
+
+    vec![Keybind {
+        triggers: triggers,
+        action: cycle_tabs,
+    }]
+}
+
+fn highlight_move_binds() -> Vec<Keybind> {
+    let mut triggers: Vec<KeyEvent> = get_highlights_down_keys();
+
+    triggers.append(&mut get_highlights_up_keys());
+
+    vec![Keybind {
+        triggers: triggers,
+        action: cycle_highlights,
+    }]
+}
+
+fn select_binds() -> Vec<Keybind> {
+    vec![Keybind {
+        triggers: vec![
+            KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE),
+            KeyEvent::new(KeyCode::Char(' '), KeyModifiers::NONE),
+        ],
+        action: select,
+    }]
+}
+
+fn panel_move_binds() -> Vec<Keybind> {
+    let mut triggers: Vec<KeyEvent> = get_panels_left_keys();
+
+    triggers.append(&mut get_panels_right_keys());
+
+    vec![Keybind {
+        triggers: triggers,
+        action: cycle_panels,
+    }]
+}
+
+pub fn function_to_string(function: KeyBindFn) -> String {
+    let func: usize = function as usize;
+
+    if func == stop_app as usize {
+        return String::from("Exit");
+    }
+
+    if func == cycle_tabs as usize {
+        return String::from("Cycle Tabs");
+    }
+
+    if func == cycle_highlights as usize {
+        return String::from("Cycle List");
+    }
+
+    if func == select as usize {
+        return String::from("Select Current");
+    }
+
+    if func == cycle_panels as usize {
+        return String::from("Cycle Panels");
+    }
+
+    if func == stop_typing as usize {
+        return String::from("Cancel");
+    }
+
+    if func == submit_search as usize {
+        return String::from("Submit");
+    }
+
+    if func == remove_from_search_input as usize {
+        return String::from("Delete");
+    }
+
+    return String::from("Unknown");
+}
+
+fn get_tab_right_keys() -> Vec<KeyEvent> {
+    vec![KeyEvent::new(KeyCode::Tab, KeyModifiers::NONE)]
+}
+
+fn get_tab_left_keys() -> Vec<KeyEvent> {
+    vec![KeyEvent::new(KeyCode::BackTab, KeyModifiers::SHIFT)]
+}
+
+fn get_highlights_down_keys() -> Vec<KeyEvent> {
+    vec![
+        KeyEvent::new(KeyCode::Char('s'), KeyModifiers::NONE),
+        KeyEvent::new(KeyCode::Char('S'), KeyModifiers::SHIFT),
+        KeyEvent::new(KeyCode::Down, KeyModifiers::NONE),
+    ]
+}
+
+fn get_highlights_up_keys() -> Vec<KeyEvent> {
+    vec![
+        KeyEvent::new(KeyCode::Char('w'), KeyModifiers::NONE),
+        KeyEvent::new(KeyCode::Char('W'), KeyModifiers::SHIFT),
+        KeyEvent::new(KeyCode::Up, KeyModifiers::NONE),
+    ]
+}
+
+fn get_panels_left_keys() -> Vec<KeyEvent> {
+    vec![
+        KeyEvent::new(KeyCode::Char('a'), KeyModifiers::NONE),
+        KeyEvent::new(KeyCode::Char('A'), KeyModifiers::SHIFT),
+        KeyEvent::new(KeyCode::Left, KeyModifiers::NONE),
+    ]
+}
+
+fn get_panels_right_keys() -> Vec<KeyEvent> {
+    vec![
+        KeyEvent::new(KeyCode::Char('d'), KeyModifiers::NONE),
+        KeyEvent::new(KeyCode::Char('D'), KeyModifiers::SHIFT),
+        KeyEvent::new(KeyCode::Right, KeyModifiers::NONE),
+    ]
 }

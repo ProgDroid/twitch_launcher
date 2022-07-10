@@ -6,6 +6,8 @@ pub mod event;
 
 pub mod handler;
 
+pub mod keybind;
+
 pub mod panel;
 
 pub mod popup;

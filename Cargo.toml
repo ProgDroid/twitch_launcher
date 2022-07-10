@@ -8,11 +8,11 @@ edition = "2021"
 
 [dependencies]
 async-trait = "0.1"
-chrono = "0.4"
 crossterm = "0.23"
 num = "0.4"
 reqwest = "0.11"
 serde_json = "1.0"
+tui = "0.18.0"
 
 [dependencies.serde]
 version = "1.0"
@@ -21,11 +21,6 @@ features = ["derive"]
 [dependencies.tokio]
 version = "1.17"
 features = ["full"]
-
-[dependencies.tui]
-version = "0.18.0"
-default-features = false
-features = ["crossterm"]
 
 [dependencies.twitch_api2]
 version = "0.5"

@@ -165,12 +165,8 @@ pub struct Theme {
     pub text_dimmed: CustomColour,
 }
 
-impl Theme {
-    pub fn elevation(self: &Self, level: Elevation) -> CustomColour {
-        self.background.blend(WHITE, ELEVATION[level as usize])
-    }
-
-    pub fn default() -> Self {
+impl Default for Theme {
+    fn default() -> Self {
         Theme {
             background: BG_GREY,
             primary: CustomColour::from(Color::Yellow),
@@ -178,5 +174,11 @@ impl Theme {
             text: WHITE,
             text_dimmed: WHITE.blend(BLACK, 0.5),
         }
+    }
+}
+
+impl Theme {
+    pub fn elevation(self: &Self, level: Elevation) -> CustomColour {
+        self.background.blend(WHITE, ELEVATION[level as usize])
     }
 }

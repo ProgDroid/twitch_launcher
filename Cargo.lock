@@ -80,7 +80,6 @@ dependencies = [
  "num-integer",
  "num-traits",
  "serde",
- "time",
  "winapi",
 ]
 
@@ -1049,16 +1048,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "time"
-version = "0.1.43"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ca8a50ef2360fbd1eeb0ecd46795a87a19024eb4b53c5dc916ca1fd95fe62438"
-dependencies = [
- "libc",
- "winapi",
-]
-
-[[package]]
 name = "tinyvec"
 version = "1.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1212,7 +1201,6 @@ name = "twitch_launcher"
 version = "0.3.0"
 dependencies = [
  "async-trait",
- "chrono",
  "crossterm",
  "num",
  "reqwest",

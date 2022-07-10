@@ -26,11 +26,13 @@ pub enum ChannelStatus {
     Offline = 2,
 }
 
-impl ChannelStatus {
-    pub fn default() -> Self {
+impl Default for ChannelStatus {
+    fn default() -> Self {
         ChannelStatus::Unknown
     }
+}
 
+impl ChannelStatus {
     pub fn message(self: &Self) -> &str {
         match self {
             ChannelStatus::Unknown => "...  ",
@@ -127,3 +129,4 @@ pub fn load_channels(
 
 // TODO need to add account configuration
 // TODO github actions to check code?
+// TODO upgrade twitch api crate

@@ -1,18 +1,18 @@
 use crate::{
     channel::{Channel, ChannelStatus},
+    keybind::Keybind,
     panel::HomePanel,
     popup::Popup,
     theme::{Elevation, Theme},
 };
-use chrono::{Datelike, Local};
-use std::cmp::min;
+use std::cmp::{max, min};
 use tui::{
     backend::Backend,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     terminal::Frame,
     text::{Span, Spans},
-    widgets::{Block, Borders, List, ListItem, ListState, Paragraph, Tabs},
+    widgets::{Block, Borders, List, ListItem, ListState, Paragraph, Tabs, Wrap},
 };
 
 const HORIZONTAL_MARGIN: u16 = 2;
@@ -106,6 +106,7 @@ pub fn render_home<B: Backend>(
     typing: &bool,
     search_input: &Vec<char>,
     focused_panel: &HomePanel,
+    keybinds: &Vec<Keybind>,
 ) {
     let area = frame.size();
 
@@ -208,7 +209,7 @@ pub fn render_home<B: Backend>(
         }
     }
 
-    frame.render_widget(generate_info_widget(theme), app_layout[3]);
+    frame.render_widget(generate_keys_widget(theme, keybinds), app_layout[3]);
 }
 
 fn generate_favourites_widget<'a>(
@@ -236,7 +237,12 @@ fn generate_favourites_widget<'a>(
                     format!(
                         " {:text_width$}",
                         a.friendly_name.as_str(),
-                        text_width = min((width as usize) - a.status.message().len() - 5, 25),
+                        text_width = min(
+                            max(width as usize, a.status.message().len() - 5)
+                                - a.status.message().len()
+                                - 5,
+                            25,
+                        ),
                     ),
                     text_style,
                 ),
@@ -386,7 +392,7 @@ fn generate_app_layout(area: Rect) -> Vec<Rect> {
                 Constraint::Length(3), // Header
                 Constraint::Length(1), // Empty Area
                 Constraint::Min(0),    // Content Area
-                Constraint::Length(2), // Footer
+                Constraint::Length(3), // Footer
             ]
             .as_ref(),
         )
@@ -452,14 +458,26 @@ fn generate_search_layout(area: Rect) -> Vec<Rect> {
         .split(search_chunks[1])
 }
 
-fn generate_info_widget<'a>(theme: &Theme) -> Paragraph<'a> {
-    let info_text = vec![Spans::from(vec![Span::styled(
-        format!("Twitch Launcher {} ", Local::now().year()),
-        Style::default().add_modifier(Modifier::ITALIC),
-    )])];
+fn generate_keys_widget<'a>(theme: &Theme, keybinds: &Vec<Keybind>) -> Paragraph<'a> {
+    let mut info_text: Vec<Span> = Vec::new();
 
-    Paragraph::new(info_text)
-        .style(Style::default().fg(theme.primary.as_tui_colour()))
-        .alignment(Alignment::Right)
+    for (i, bind) in keybinds.iter().enumerate() {
+        if i > 0 {
+            info_text.push(Span::styled(
+                format!(" | "),
+                Style::default().add_modifier(Modifier::ITALIC),
+            ));
+        }
+
+        info_text.push(Span::styled(
+            format!("{}", &bind),
+            Style::default().add_modifier(Modifier::ITALIC),
+        ));
+    }
+
+    Paragraph::new(Spans::from(info_text))
+        .style(Style::default().fg(theme.text_dimmed.as_tui_colour()))
         .block(Block::default().style(Style::default()).title(""))
+        .alignment(Alignment::Center)
+        .wrap(Wrap { trim: true })
 }

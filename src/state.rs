@@ -1,6 +1,7 @@
 use crate::{
     channel::{load_channels, Channel, ChannelStatus},
-    handler::{keybinds_exit, keybinds_home, keybinds_startup, keybinds_typing, KeyBindFn},
+    handler::{keybinds_exit, keybinds_home, keybinds_startup, keybinds_typing},
+    keybind::Keybind,
     panel::HomePanel,
     popup::Popup,
     render,
@@ -46,7 +47,7 @@ pub enum StateMachine {
 
 #[async_trait]
 pub trait State {
-    fn keybinds(&self, key_event: KeyEvent) -> Option<KeyBindFn>;
+    fn keybinds(&self) -> Vec<Keybind>;
 
     async fn tick(&mut self, events: &mut VecDeque<Event>) -> bool;
 
@@ -57,17 +58,17 @@ pub trait State {
 
 #[async_trait]
 impl State for StateMachine {
-    fn keybinds(&self, key_event: KeyEvent) -> Option<KeyBindFn> {
+    fn keybinds(&self) -> Vec<Keybind> {
         match self {
-            StateMachine::Startup { .. } => keybinds_startup(key_event),
+            StateMachine::Startup { .. } => keybinds_startup(),
             StateMachine::Home { typing, .. } => {
                 if *typing {
-                    keybinds_typing(key_event)
+                    keybinds_typing()
                 } else {
-                    keybinds_home(key_event)
+                    keybinds_home()
                 }
             }
-            StateMachine::Exit => keybinds_exit(key_event),
+            StateMachine::Exit => keybinds_exit(),
         }
     }
 
@@ -147,6 +148,7 @@ impl State for StateMachine {
                 typing,
                 search_input,
                 focused_panel,
+                &self.keybinds(),
             ),
             StateMachine::Exit { .. } => {}
         }
