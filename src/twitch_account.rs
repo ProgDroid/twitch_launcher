@@ -23,8 +23,7 @@ impl TwitchAccount {
     pub async fn load() -> Result<Self> {
         let data: String = read_to_string(ACCOUNT_FILE)?;
 
-        let mut account: TwitchAccount =
-            serde_json::from_str(data.as_str()).expect("Could not deserialise account JSON");
+        let mut account: TwitchAccount = serde_json::from_str(data.as_str())?;
 
         check_token(&mut account).await?;
 
@@ -32,7 +31,7 @@ impl TwitchAccount {
     }
 
     pub fn save(self: &Self) -> Result<()> {
-        let file_contents: String = serde_json::to_string_pretty(&self).unwrap();
+        let file_contents: String = serde_json::to_string_pretty(&self)?;
 
         write(ACCOUNT_FILE, file_contents)?;
         Ok(())

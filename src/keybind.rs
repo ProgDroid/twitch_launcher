@@ -51,22 +51,25 @@ fn modifier_to_string(modifier: KeyModifiers) -> String {
     let mut separator = "";
 
     if modifier.contains(KeyModifiers::CONTROL) {
-        write!(&mut modifier_display, "CTRL").unwrap();
+        write!(&mut modifier_display, "CTRL").expect("Could not write CTRL to modifier string");
         separator = SEPARATOR;
     }
 
     if modifier.contains(KeyModifiers::ALT) {
-        write!(&mut modifier_display, "{}ALT", separator).unwrap();
+        write!(&mut modifier_display, "{}ALT", separator)
+            .expect("Could not write ALT to modifier string");
         separator = SEPARATOR;
     }
 
     if modifier.contains(KeyModifiers::SHIFT) {
-        write!(&mut modifier_display, "{}SHIFT", separator).unwrap();
+        write!(&mut modifier_display, "{}SHIFT", separator)
+            .expect("Could not write SHIFT to modifier string");
         separator = SEPARATOR;
     }
 
     if !modifier_display.is_empty() {
-        write!(&mut modifier_display, "{}", separator).unwrap();
+        write!(&mut modifier_display, "{}", separator)
+            .expect("Could not write separator at the end of modifier string");
     }
 
     modifier_display

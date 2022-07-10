@@ -104,8 +104,10 @@ impl State for StateMachine {
                     Ok((handle, status)) => {
                         let index: usize = channels
                             .iter()
-                            .position(|channel| channel.handle == handle)
-                            .unwrap();
+                            .position(|channel| {
+                                channel.handle == handle && channel.status != status
+                            })
+                            .expect("Received channel status for non-existing channel");
                         channels[index].status = status;
                     }
                     Err(_) => {}
@@ -160,11 +162,11 @@ impl State for StateMachine {
     fn transition(&self, event: Event) -> Option<StateMachine> {
         match (self, event) {
             (StateMachine::Startup { twitch_account, .. }, Event::AccountLoaded) => {
-                let (channels, channel_check) = match load_channels(
-                    twitch_account
-                        .as_ref()
-                        .expect("Made it past startup without loading Twitch account"),
-                ) {
+                let account = twitch_account
+                    .as_ref()
+                    .expect("Made it past startup without loading Twitch account");
+
+                let (channels, channel_check) = match load_channels(account) {
                     Ok((channels, channel_check)) => (channels, channel_check),
                     Err(e) => {
                         eprintln!("Error loading channels: {}", e);
@@ -178,33 +180,17 @@ impl State for StateMachine {
                     channel_highlight: 0,
                     channels,
                     twitch_account: Some(TwitchAccount {
-                        username: String::from(
-                            (twitch_account.as_ref().unwrap()).username.as_str(),
-                        ),
-                        user_id: String::from((*twitch_account.as_ref().unwrap()).user_id.as_str()),
-                        client_id: Secret::new(
-                            (twitch_account.as_ref().unwrap())
-                                .client_id
-                                .expose_value()
-                                .to_string(),
-                        ),
+                        username: String::from(account.username.as_str()),
+                        user_id: String::from(account.user_id.as_str()),
+                        client_id: Secret::new(account.client_id.expose_value().to_string()),
                         client_secret: Secret::new(
-                            (twitch_account.as_ref().unwrap())
-                                .client_secret
-                                .expose_value()
-                                .to_string(),
+                            account.client_secret.expose_value().to_string(),
                         ),
                         user_access_token: Secret::new(
-                            (twitch_account.as_ref().unwrap())
-                                .user_access_token
-                                .expose_value()
-                                .to_string(),
+                            account.user_access_token.expose_value().to_string(),
                         ),
                         refresh_token: Secret::new(
-                            (twitch_account.as_ref().unwrap())
-                                .refresh_token
-                                .expose_value()
-                                .to_string(),
+                            account.refresh_token.expose_value().to_string(),
                         ),
                     }),
                     channel_check,

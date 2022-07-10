@@ -95,7 +95,6 @@ pub fn account_missing<B: Backend>(theme: &Theme, frame: &mut Frame<'_, B>, time
     );
 }
 
-// ? TODO this might need splitting up
 pub fn render_home<B: Backend>(
     theme: &Theme,
     frame: &mut Frame<'_, B>,

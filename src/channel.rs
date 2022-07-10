@@ -18,7 +18,7 @@ use twitch_api2::{
 
 const CHANNELS_FILE: &str = "channels.json";
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[repr(usize)]
 pub enum ChannelStatus {
     Unknown = 0,
@@ -67,7 +67,13 @@ impl Channel {
             .user_login(vec![handle])
             .build();
 
-        let response = client.req_get(req, &token).await.unwrap();
+        let response = match client.req_get(req, &token).await {
+            Ok(response) => response,
+            Err(e) => {
+                eprintln!("Could not get channel status: {}", e);
+                return ChannelStatus::Offline;
+            }
+        };
 
         return if response.data.is_empty() {
             ChannelStatus::Offline
@@ -96,7 +102,6 @@ impl Channel {
     }
 }
 
-// TODO consider returning result here? handle not being able to deserialise JSON
 pub fn load_channels(
     twitch_account: &TwitchAccount,
 ) -> Result<(Vec<Channel>, mpsc::Receiver<(String, ChannelStatus)>)> {

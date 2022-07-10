@@ -267,7 +267,7 @@ fn submit_search(_: KeyEvent, app: &mut App) -> AppResult<()> {
             if let Some(index) = channels.iter().position(|channel| channel.handle == handle) {
                 app.events.push_back(Event::ChannelSelected(
                     channels[index].clone(),
-                    true, /* chat */
+                    true, /* TODO chat */
                 ));
             } else {
                 let channel = Channel {
@@ -277,7 +277,7 @@ fn submit_search(_: KeyEvent, app: &mut App) -> AppResult<()> {
                 };
 
                 app.events
-                    .push_back(Event::ChannelSelected(channel, true /* chat */));
+                    .push_back(Event::ChannelSelected(channel, true /* TODO chat */));
             }
         }
         _ => {}
