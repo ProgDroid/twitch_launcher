@@ -255,6 +255,10 @@ fn submit_search(_: KeyEvent, app: &mut App) -> AppResult<()> {
             channels,
             ..
         } => {
+            if search_input.is_empty() {
+                return Ok(());
+            }
+
             *typing = false;
 
             let handle: String = search_input.iter().collect();
