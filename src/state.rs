@@ -10,10 +10,13 @@ use crate::{
     twitch_account::TwitchAccount,
 };
 use async_trait::async_trait;
-use crossterm::event::KeyEvent;
 use std::collections::VecDeque;
 use tokio::sync::mpsc;
 use tui::{backend::Backend, terminal::Frame};
+
+type TabTitles = [&'static str; 1];
+
+const TAB_TITLES: TabTitles = ["Home"];
 
 pub enum Event {
     AccountLoaded,
@@ -31,7 +34,7 @@ pub enum StateMachine {
     },
     Home {
         tab: usize,
-        tab_titles: [&'static str; 1],
+        tab_titles: TabTitles,
         channel_highlight: usize,
         channels: Vec<Channel>,
         twitch_account: Option<TwitchAccount>,
@@ -171,7 +174,7 @@ impl State for StateMachine {
 
                 Some(StateMachine::Home {
                     tab: 0,
-                    tab_titles: ["Home"], // TODO make default const?
+                    tab_titles: TAB_TITLES,
                     channel_highlight: 0,
                     channels,
                     twitch_account: Some(TwitchAccount {
