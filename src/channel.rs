@@ -21,23 +21,25 @@ const CHANNELS_FILE: &str = "channels.json";
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[repr(usize)]
 pub enum ChannelStatus {
-    Unknown = 0,
+    Awaiting = 0,
     Online = 1,
     Offline = 2,
+    Unknown = 3,
 }
 
 impl Default for ChannelStatus {
     fn default() -> Self {
-        ChannelStatus::Unknown
+        ChannelStatus::Awaiting
     }
 }
 
 impl ChannelStatus {
     pub fn message(self: &Self) -> &str {
         match self {
-            ChannelStatus::Unknown => "...  ",
+            ChannelStatus::Awaiting => "...  ",
             ChannelStatus::Online => "online",
             ChannelStatus::Offline => "offline",
+            ChannelStatus::Unknown => "unknown",
         }
     }
 }
@@ -60,7 +62,8 @@ impl Channel {
             match UserToken::from_existing(&reqwest::Client::default(), token, None, None).await {
                 Ok(token) => token,
                 Err(_) => {
-                    return ChannelStatus::Offline;
+                    eprintln!("Could not validate token while updating channel status");
+                    return ChannelStatus::Unknown;
                 }
             };
 
@@ -72,7 +75,7 @@ impl Channel {
             Ok(response) => response,
             Err(e) => {
                 eprintln!("Could not get channel status: {}", e);
-                return ChannelStatus::Offline;
+                return ChannelStatus::Unknown;
             }
         };
 

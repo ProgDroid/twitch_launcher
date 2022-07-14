@@ -220,12 +220,14 @@ fn generate_favourites_widget<'a>(
     let online_style = Style::default().fg(theme.secondary.as_tui_colour());
     let offline_style = Style::default().fg((&theme.text_dimmed).as_tui_colour());
     let unknown_status_style = Style::default().fg(theme.text.as_tui_colour());
+    let awaiting_status_style = Style::default().fg(theme.text.as_tui_colour());
     let text_style = Style::default().fg(theme.text.as_tui_colour());
 
     let items: Vec<ListItem<'a>> = channels
         .iter()
         .map(|a| {
             let status_style = match a.status {
+                ChannelStatus::Awaiting => awaiting_status_style,
                 ChannelStatus::Online => online_style,
                 ChannelStatus::Offline => offline_style,
                 ChannelStatus::Unknown => unknown_status_style,
