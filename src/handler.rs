@@ -11,8 +11,6 @@ pub fn keybinds_startup() -> Vec<Keybind> {
     quit_binds()
 }
 
-// TODO handle failure to check status
-
 pub fn keybinds_home() -> Vec<Keybind> {
     let mut binds = quit_binds();
 
@@ -135,7 +133,6 @@ fn cycle_highlights(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
     Ok(())
 }
 
-// ? TODO Maybe add CTRL modifier to go all the way to the bottom?
 fn highlight_down(_: KeyEvent, app: &mut App) -> AppResult<()> {
     match &mut app.state {
         StateMachine::Home {
@@ -358,10 +355,20 @@ fn highlight_move_binds() -> Vec<Keybind> {
 
     triggers.append(&mut get_highlights_up_keys());
 
-    vec![Keybind {
-        triggers: triggers,
-        action: cycle_highlights,
-    }]
+    let mut top_bottom_triggers = get_highlights_bottom_keys();
+
+    top_bottom_triggers.append(&mut get_highlights_top_keys());
+
+    vec![
+        Keybind {
+            triggers: triggers,
+            action: cycle_highlights,
+        },
+        Keybind {
+            triggers: top_bottom_triggers,
+            action: top_bottom_highlights,
+        },
+    ]
 }
 
 fn select_binds() -> Vec<Keybind> {
@@ -461,4 +468,71 @@ fn get_panels_right_keys() -> Vec<KeyEvent> {
         KeyEvent::new(KeyCode::Char('D'), KeyModifiers::SHIFT),
         KeyEvent::new(KeyCode::Right, KeyModifiers::NONE),
     ]
+}
+
+fn get_highlights_bottom_keys() -> Vec<KeyEvent> {
+    let mut existing_highlight_bottom_keys = get_highlights_down_keys();
+
+    for key_event in &mut existing_highlight_bottom_keys {
+        key_event.modifiers = KeyModifiers::CONTROL;
+    }
+
+    existing_highlight_bottom_keys
+}
+
+fn get_highlights_top_keys() -> Vec<KeyEvent> {
+    let mut existing_highlight_up_keys = get_highlights_up_keys();
+
+    for key_event in &mut existing_highlight_up_keys {
+        key_event.modifiers = KeyModifiers::CONTROL;
+    }
+
+    existing_highlight_up_keys
+}
+
+fn top_bottom_highlights(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
+    if get_highlights_bottom_keys().contains(&key_event) {
+        return highlight_bottom(key_event, app);
+    }
+
+    if get_highlights_top_keys().contains(&key_event) {
+        return highlight_top(key_event, app);
+    }
+
+    Ok(())
+}
+
+fn highlight_bottom(_: KeyEvent, app: &mut App) -> AppResult<()> {
+    match &mut app.state {
+        StateMachine::Home {
+            ref mut channel_highlight,
+            channels,
+            focused_panel,
+            ..
+        } => {
+            if *focused_panel == HomePanel::Favourites {
+                *channel_highlight = channels.len() - 1;
+            }
+        }
+        _ => {}
+    }
+
+    Ok(())
+}
+
+fn highlight_top(_: KeyEvent, app: &mut App) -> AppResult<()> {
+    match &mut app.state {
+        StateMachine::Home {
+            ref mut channel_highlight,
+            focused_panel,
+            ..
+        } => {
+            if *focused_panel == HomePanel::Favourites {
+                *channel_highlight = 0;
+            }
+        }
+        _ => {}
+    }
+
+    Ok(())
 }
