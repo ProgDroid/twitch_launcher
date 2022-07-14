@@ -100,17 +100,12 @@ impl State for StateMachine {
                 channel_check,
                 ..
             } => {
-                match channel_check.try_recv() {
-                    Ok((handle, status)) => {
-                        let index: usize = channels
-                            .iter()
-                            .position(|channel| {
-                                channel.handle == handle && channel.status != status
-                            })
-                            .expect("Received channel status for non-existing channel");
-                        channels[index].status = status;
-                    }
-                    Err(_) => {}
+                while let Ok((handle, status)) = channel_check.try_recv() {
+                    let index: usize = channels
+                        .iter()
+                        .position(|channel| channel.handle == handle && channel.status != status)
+                        .expect("Received channel status for non-existing channel");
+                    channels[index].status = status;
                 }
 
                 true
