@@ -464,21 +464,18 @@ fn generate_search_layout(area: Rect) -> Vec<Rect> {
 }
 
 fn generate_keys_widget<'a>(theme: &Theme, keybinds: &Vec<Keybind>) -> Paragraph<'a> {
-    let mut info_text: Vec<Span> = Vec::new();
+    let info_text: Vec<Span> = keybinds
+        .iter()
+        .enumerate()
+        .map(|(i, bind)| {
+            let spacer = if i == 0 { "" } else { " | " };
 
-    for (i, bind) in keybinds.iter().enumerate() {
-        if i > 0 {
-            info_text.push(Span::styled(
-                format!(" | "),
+            Span::styled(
+                format!("{}{}", spacer, bind),
                 Style::default().add_modifier(Modifier::ITALIC),
-            ));
-        }
-
-        info_text.push(Span::styled(
-            format!("{}", &bind),
-            Style::default().add_modifier(Modifier::ITALIC),
-        ));
-    }
+            )
+        })
+        .collect();
 
     Paragraph::new(Spans::from(info_text))
         .style(Style::default().fg(theme.text_dimmed.as_tui_colour()))

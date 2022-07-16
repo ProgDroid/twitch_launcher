@@ -16,6 +16,7 @@ use tui::{backend::Backend, terminal::Frame};
 
 pub type TabTitles = [&'static str; 1];
 
+// TODO should this be enum?
 const TAB_TITLES: TabTitles = ["Home"];
 
 pub enum Event {

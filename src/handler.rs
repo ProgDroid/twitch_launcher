@@ -76,6 +76,16 @@ fn stop_app(_: KeyEvent, app: &mut App) -> AppResult<()> {
     Ok(())
 }
 
+// TODO custom type for tab/channel highlight?
+
+fn index_add(current_value: &usize, size: usize) -> usize {
+    (current_value + 1) % size
+}
+
+fn index_subtract(current_value: &usize, size: usize) -> usize {
+    (current_value + size - 1) % size
+}
+
 fn cycle_tabs(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
     if get_tab_right_keys().contains(&key_event) {
         return tab_right(key_event, app);
@@ -94,7 +104,7 @@ fn tab_right(_: KeyEvent, app: &mut App) -> AppResult<()> {
             ref mut tab,
             tab_titles,
             ..
-        } => *tab = (*tab + 1) % tab_titles.len(),
+        } => *tab = index_add(tab, tab_titles.len()),
         _ => {}
     }
 
@@ -107,14 +117,7 @@ fn tab_left(_: KeyEvent, app: &mut App) -> AppResult<()> {
             ref mut tab,
             tab_titles,
             ..
-        } => {
-            if *tab == 0 {
-                *tab = tab_titles.len() - 1;
-                return Ok(());
-            }
-
-            *tab -= 1;
-        }
+        } => *tab = index_subtract(tab, tab_titles.len()),
         _ => {}
     }
 
@@ -142,7 +145,7 @@ fn highlight_down(_: KeyEvent, app: &mut App) -> AppResult<()> {
             ..
         } => {
             if *focused_panel == HomePanel::Favourites {
-                *channel_highlight = (*channel_highlight + 1) % channels.len()
+                *channel_highlight = index_add(channel_highlight, channels.len());
             }
         }
         _ => {}
@@ -160,12 +163,7 @@ fn highlight_up(_: KeyEvent, app: &mut App) -> AppResult<()> {
             ..
         } => {
             if *focused_panel == HomePanel::Favourites {
-                if *channel_highlight == 0 {
-                    *channel_highlight = channels.len() - 1;
-                    return Ok(());
-                }
-
-                *channel_highlight -= 1;
+                *channel_highlight = index_subtract(channel_highlight, channels.len());
             }
         }
         _ => {}
@@ -284,17 +282,15 @@ fn submit_search(_: KeyEvent, app: &mut App) -> AppResult<()> {
 }
 
 fn remove_from_search_input(_: KeyEvent, app: &mut App) -> AppResult<()> {
-    match &mut app.state {
+    match app.state {
         StateMachine::Home {
             typing,
-            search_input,
+            ref mut search_input,
             ..
         } => {
-            if !*typing {
-                return Ok(());
+            if typing {
+                search_input.pop();
             }
-
-            search_input.pop();
         }
         _ => {}
     }
@@ -303,13 +299,13 @@ fn remove_from_search_input(_: KeyEvent, app: &mut App) -> AppResult<()> {
 }
 
 fn add_to_search_input(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
-    match &mut app.state {
+    match app.state {
         StateMachine::Home {
             typing,
-            search_input,
+            ref mut search_input,
             ..
         } => {
-            if !*typing {
+            if !typing {
                 return Ok(());
             }
 
@@ -395,39 +391,17 @@ fn panel_move_binds() -> Vec<Keybind> {
 pub fn function_to_string(function: KeyBindFn) -> String {
     let func: usize = function as usize;
 
-    if func == stop_app as usize {
-        return String::from("Exit");
+    match func {
+        f if f == stop_app as usize => String::from("Exit"),
+        f if f == cycle_tabs as usize => String::from("Cycle Tabs"),
+        f if f == cycle_highlights as usize => String::from("Cycle List"),
+        f if f == select as usize => String::from("Select Current"),
+        f if f == cycle_panels as usize => String::from("Cycle Panels"),
+        f if f == stop_typing as usize => String::from("Cancel"),
+        f if f == submit_search as usize => String::from("Submit"),
+        f if f == remove_from_search_input as usize => String::from("Delete"),
+        _ => String::from("Unknown"),
     }
-
-    if func == cycle_tabs as usize {
-        return String::from("Cycle Tabs");
-    }
-
-    if func == cycle_highlights as usize {
-        return String::from("Cycle List");
-    }
-
-    if func == select as usize {
-        return String::from("Select Current");
-    }
-
-    if func == cycle_panels as usize {
-        return String::from("Cycle Panels");
-    }
-
-    if func == stop_typing as usize {
-        return String::from("Cancel");
-    }
-
-    if func == submit_search as usize {
-        return String::from("Submit");
-    }
-
-    if func == remove_from_search_input as usize {
-        return String::from("Delete");
-    }
-
-    return String::from("Unknown");
 }
 
 fn get_tab_right_keys() -> Vec<KeyEvent> {
@@ -471,23 +445,23 @@ fn get_panels_right_keys() -> Vec<KeyEvent> {
 }
 
 fn get_highlights_bottom_keys() -> Vec<KeyEvent> {
-    let mut existing_highlight_bottom_keys = get_highlights_down_keys();
-
-    for key_event in &mut existing_highlight_bottom_keys {
-        key_event.modifiers = KeyModifiers::CONTROL;
-    }
-
-    existing_highlight_bottom_keys
+    get_highlights_down_keys()
+        .iter_mut()
+        .map(|event| {
+            event.modifiers = KeyModifiers::CONTROL;
+            event.clone()
+        })
+        .collect::<Vec<KeyEvent>>()
 }
 
 fn get_highlights_top_keys() -> Vec<KeyEvent> {
-    let mut existing_highlight_up_keys = get_highlights_up_keys();
-
-    for key_event in &mut existing_highlight_up_keys {
-        key_event.modifiers = KeyModifiers::CONTROL;
-    }
-
-    existing_highlight_up_keys
+    get_highlights_up_keys()
+        .iter_mut()
+        .map(|event| {
+            event.modifiers = KeyModifiers::CONTROL;
+            event.clone()
+        })
+        .collect::<Vec<KeyEvent>>()
 }
 
 fn top_bottom_highlights(key_event: KeyEvent, app: &mut App) -> AppResult<()> {

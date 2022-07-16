@@ -48,15 +48,11 @@ impl App {
     pub async fn tick(&mut self) {
         self.running = self.state.tick(&mut self.events).await;
 
-        match self.events.pop_front() {
-            Some(e) => match self.state.transition(e) {
-                Some(s) => {
-                    self.state = s;
-                }
-                None => {}
-            },
-            None => {}
-        };
+        if let Some(e) = self.events.pop_front() {
+            if let Some(s) = self.state.transition(e) {
+                self.state = s;
+            }
+        }
     }
 
     pub fn render<B: Backend>(&mut self, frame: &mut Frame<'_, B>) {
