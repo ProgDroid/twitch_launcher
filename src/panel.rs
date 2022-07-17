@@ -12,7 +12,6 @@ pub enum Home {
     Search = 1,
 }
 
-#[allow(clippy::missing_inline_in_public_items)]
 impl Panel for Home {
     fn left(&self) -> Self {
         match *self {

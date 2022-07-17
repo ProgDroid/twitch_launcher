@@ -8,13 +8,11 @@ use crate::{
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 #[must_use]
-#[allow(clippy::missing_inline_in_public_items)]
 pub fn keybinds_startup() -> Vec<Keybind> {
     quit_binds()
 }
 
 #[must_use]
-#[allow(clippy::missing_inline_in_public_items)]
 pub fn keybinds_home() -> Vec<Keybind> {
     let mut binds = quit_binds();
 
@@ -36,7 +34,6 @@ pub const fn keybinds_exit() -> Vec<Keybind> {
 }
 
 #[must_use]
-#[allow(clippy::missing_inline_in_public_items)]
 pub fn keybinds_typing() -> Vec<Keybind> {
     vec![
         Keybind {
@@ -61,10 +58,7 @@ pub fn keybinds_typing() -> Vec<Keybind> {
     ]
 }
 
-#[allow(
-    clippy::missing_inline_in_public_items,
-    clippy::wildcard_enum_match_arm
-)]
+#[allow(clippy::wildcard_enum_match_arm)]
 pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> Result<()> {
     if let Some(keybind) = app
         .state
@@ -471,11 +465,7 @@ fn panel_move_binds() -> Vec<Keybind> {
     }]
 }
 
-#[allow(
-    clippy::missing_inline_in_public_items,
-    clippy::as_conversions,
-    clippy::fn_to_numeric_cast_any
-)]
+#[allow(clippy::as_conversions, clippy::fn_to_numeric_cast_any)]
 pub fn function_to_string(function: KeyBindFn) -> String {
     let func: usize = function as usize;
 

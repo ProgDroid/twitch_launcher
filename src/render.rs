@@ -41,11 +41,7 @@ impl From<usize> for Tab {
     }
 }
 
-#[allow(
-    clippy::missing_inline_in_public_items,
-    clippy::trivially_copy_pass_by_ref,
-    clippy::indexing_slicing
-)]
+#[allow(clippy::trivially_copy_pass_by_ref, clippy::indexing_slicing)]
 pub fn startup_animation<B: Backend>(theme: &Theme, frame: &mut Frame<'_, B>, timer: &u64) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
@@ -74,11 +70,7 @@ pub fn startup_animation<B: Backend>(theme: &Theme, frame: &mut Frame<'_, B>, ti
     );
 }
 
-#[allow(
-    clippy::missing_inline_in_public_items,
-    clippy::trivially_copy_pass_by_ref,
-    clippy::indexing_slicing
-)]
+#[allow(clippy::trivially_copy_pass_by_ref, clippy::indexing_slicing)]
 pub fn account_missing<B: Backend>(theme: &Theme, frame: &mut Frame<'_, B>, timer: &u64) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
@@ -109,7 +101,6 @@ pub fn account_missing<B: Backend>(theme: &Theme, frame: &mut Frame<'_, B>, time
 
 #[allow(
     clippy::too_many_arguments,
-    clippy::missing_inline_in_public_items,
     clippy::trivially_copy_pass_by_ref,
     clippy::indexing_slicing
 )]

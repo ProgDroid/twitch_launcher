@@ -24,13 +24,14 @@ impl TwitchAccount {
     pub async fn load() -> Result<Self> {
         let data: String = read_to_string(ACCOUNT_FILE)?;
 
-        let mut account: TwitchAccount = serde_json::from_str(data.as_str())?;
+        let mut account: Self = serde_json::from_str(data.as_str())?;
 
         check_token(&mut account).await?;
 
         Ok(account)
     }
 
+    #[allow(clippy::needless_arbitrary_self_type)]
     pub fn save(self: &Self) -> Result<()> {
         let file_contents: String = serde_json::to_string_pretty(&self)?;
 
@@ -40,16 +41,24 @@ impl TwitchAccount {
 }
 
 async fn check_token(twitch_account: &mut TwitchAccount) -> Result<()> {
-    let token = AccessToken::new(twitch_account.user_access_token.expose_value().to_string());
+    let existing_access_token =
+        AccessToken::new(twitch_account.user_access_token.expose_value().to_owned());
 
-    match UserToken::from_existing(&reqwest::Client::default(), token, None, None).await {
+    match UserToken::from_existing(
+        &reqwest::Client::default(),
+        existing_access_token,
+        None,
+        None,
+    )
+    .await
+    {
         Ok(_) => Ok(()),
         Err(_) => {
             match refresh_token(
                 &reqwest::Client::default(),
-                &RefreshToken::new(twitch_account.refresh_token.expose_value().to_string()),
-                &ClientId::new(twitch_account.client_id.expose_value().to_string()),
-                &ClientSecret::new(twitch_account.client_secret.expose_value().to_string()),
+                &RefreshToken::new(twitch_account.refresh_token.expose_value().to_owned()),
+                &ClientId::new(twitch_account.client_id.expose_value().to_owned()),
+                &ClientSecret::new(twitch_account.client_secret.expose_value().to_owned()),
             )
             .await
             {
@@ -58,9 +67,7 @@ async fn check_token(twitch_account: &mut TwitchAccount) -> Result<()> {
                         Secret::new(access_token.secret().to_owned());
                     twitch_account.refresh_token = match refresh_token {
                         Some(token) => Secret::new(token.secret().to_owned()),
-                        None => {
-                            Secret::new(twitch_account.refresh_token.expose_value().to_string())
-                        }
+                        None => Secret::new(twitch_account.refresh_token.expose_value().to_owned()),
                     };
                     twitch_account.save()?;
 

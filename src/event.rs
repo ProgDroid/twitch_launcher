@@ -22,7 +22,6 @@ pub struct Handler {
     handler: thread::JoinHandle<Status>,
 }
 
-#[allow(clippy::missing_inline_in_public_items)]
 impl Handler {
     #[must_use]
     #[allow(clippy::shadow_reuse, clippy::expect_used)]

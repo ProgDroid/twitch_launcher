@@ -18,7 +18,6 @@ pub struct App {
     pub events: VecDeque<Event>,
 }
 
-#[allow(clippy::missing_inline_in_public_items)]
 impl App {
     pub async fn new(tick_rate: u64) -> Self {
         let twitch_account: Option<TwitchAccount> = match TwitchAccount::load().await {

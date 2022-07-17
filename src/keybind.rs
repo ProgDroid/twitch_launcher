@@ -14,7 +14,6 @@ pub struct Keybind {
     pub action: KeyBindFn,
 }
 
-#[allow(clippy::missing_inline_in_public_items)]
 impl Display for Keybind {
     fn fmt(&self, f: &mut Formatter) -> Result {
         let mut bind_display = String::new();

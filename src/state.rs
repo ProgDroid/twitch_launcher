@@ -62,7 +62,6 @@ pub trait State {
 }
 
 #[async_trait]
-#[allow(clippy::missing_inline_in_public_items)]
 impl State for StateMachine {
     fn keybinds(&self) -> Vec<Keybind> {
         match *self {

@@ -7,8 +7,8 @@ use tui::style::{Color, Modifier};
 #[derive(Debug)]
 pub struct CustomColour {
     pub r: u8,
-    pub b: u8,
     pub g: u8,
+    pub b: u8,
 }
 
 #[repr(usize)]
@@ -27,7 +27,6 @@ pub enum Elevation {
 
 // TODO implement theme loading/saving
 
-#[allow(clippy::missing_inline_in_public_items)]
 impl CustomColour {
     #[must_use]
     #[allow(
@@ -61,95 +60,99 @@ impl CustomColour {
         }
     }
 
-    pub fn from(colour: Color) -> CustomColour {
+    #[must_use]
+    #[allow(clippy::wildcard_enum_match_arm)]
+    pub const fn from(colour: Color) -> Self {
         match colour {
-            Color::Black => CustomColour {
+            Color::Black => Self {
                 r: 12,
                 g: 12,
                 b: 12,
             },
-            Color::Blue => CustomColour {
+            Color::Blue => Self {
                 r: 0,
                 g: 55,
                 b: 218,
             },
-            Color::Cyan => CustomColour {
+            Color::Cyan => Self {
                 r: 58,
                 g: 150,
                 b: 221,
             },
-            Color::Green => CustomColour {
+            Color::Green => Self {
                 r: 19,
                 g: 161,
                 b: 14,
             },
-            Color::Magenta => CustomColour {
+            Color::Magenta => Self {
                 r: 136,
                 g: 23,
                 b: 152,
             },
-            Color::Red => CustomColour {
+            Color::Red => Self {
                 r: 197,
                 g: 15,
                 b: 31,
             },
-            Color::Gray => CustomColour {
+            Color::Gray => Self {
                 r: 204,
                 g: 204,
                 b: 204,
             },
-            Color::Yellow => CustomColour {
+            Color::Yellow => Self {
                 r: 193,
                 g: 156,
                 b: 0,
             },
-            Color::DarkGray => CustomColour {
+            Color::DarkGray => Self {
                 r: 118,
                 g: 118,
                 b: 118,
             },
-            Color::White => CustomColour {
+            Color::White => Self {
                 r: 242,
                 g: 242,
                 b: 242,
             },
-            Color::LightBlue => CustomColour {
+            Color::LightBlue => Self {
                 r: 59,
                 g: 120,
                 b: 255,
             },
-            Color::LightCyan => CustomColour {
+            Color::LightCyan => Self {
                 r: 97,
                 g: 214,
                 b: 214,
             },
-            Color::LightGreen => CustomColour {
+            Color::LightGreen => Self {
                 r: 22,
                 g: 198,
                 b: 12,
             },
-            Color::LightMagenta => CustomColour {
+            Color::LightMagenta => Self {
                 r: 180,
                 g: 0,
                 b: 158,
             },
-            Color::LightRed => CustomColour {
+            Color::LightRed => Self {
                 r: 231,
                 g: 72,
                 b: 86,
             },
-            Color::LightYellow => CustomColour {
+            Color::LightYellow => Self {
                 r: 249,
                 g: 241,
                 b: 165,
             },
-            Color::Rgb(r, g, b) => CustomColour { r: r, g: g, b: b },
+            Color::Rgb(r, g, b) => Self { r, g, b },
             _ => BG_GREY,
         }
     }
 
     #[inline]
-    pub fn as_tui_colour(self: &Self) -> Color {
+    #[must_use]
+    #[allow(clippy::needless_arbitrary_self_type)]
+    pub const fn as_tui_colour(self: &Self) -> Color {
         Color::Rgb(self.r, self.g, self.b)
     }
 }
@@ -178,7 +181,7 @@ pub struct Cursor {
 
 impl Default for Cursor {
     fn default() -> Self {
-        Cursor {
+        Self {
             cursor: String::from(" "),
             modifier: Modifier::BOLD | Modifier::RAPID_BLINK | Modifier::REVERSED,
         }
@@ -197,7 +200,7 @@ pub struct Theme {
 
 impl Default for Theme {
     fn default() -> Self {
-        Theme {
+        Self {
             background: BG_GREY,
             primary: CustomColour::from(Color::Yellow),
             secondary: CustomColour::from(Color::LightRed).blend(&BLACK, 0.1),
@@ -209,6 +212,12 @@ impl Default for Theme {
 }
 
 impl Theme {
+    #[allow(
+        clippy::needless_arbitrary_self_type,
+        clippy::indexing_slicing,
+        clippy::as_conversions
+    )]
+    #[must_use]
     pub fn elevation(self: &Self, level: Elevation) -> CustomColour {
         self.background.blend(&WHITE, ELEVATION[level as usize])
     }
