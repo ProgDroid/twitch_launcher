@@ -10,7 +10,6 @@ const STARTUP_DURATION: u64 = 2;
 
 pub type Result<T> = std::result::Result<T, Box<dyn error::Error>>;
 
-#[allow(clippy::exhaustive_structs)]
 pub struct App {
     pub running: bool,
     pub theme: Theme,

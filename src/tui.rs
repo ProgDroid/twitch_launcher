@@ -1,5 +1,5 @@
 use crate::app::{App, Result};
-use crate::event::EventHandler;
+use crate::event::Handler;
 use crossterm::event::{DisableMouseCapture, EnableMouseCapture};
 use crossterm::terminal::{self, EnterAlternateScreen, LeaveAlternateScreen};
 use std::io;
@@ -9,11 +9,11 @@ use tui::Terminal;
 #[derive(Debug)]
 pub struct Tui<B: Backend> {
     terminal: Terminal<B>,
-    pub events: EventHandler,
+    pub events: Handler,
 }
 
 impl<B: Backend> Tui<B> {
-    pub fn new(terminal: Terminal<B>, events: EventHandler) -> Self {
+    pub fn new(terminal: Terminal<B>, events: Handler) -> Self {
         Self { terminal, events }
     }
 

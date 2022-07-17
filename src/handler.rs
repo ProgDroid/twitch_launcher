@@ -2,15 +2,19 @@ use crate::{
     app::{App, Result},
     channel::{Channel, Status},
     keybind::{KeyBindFn, Keybind},
-    panel::{HomePanel, Panel},
+    panel::{Home, Panel},
     state::{Event, State, StateMachine},
 };
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
+#[must_use]
+#[allow(clippy::missing_inline_in_public_items)]
 pub fn keybinds_startup() -> Vec<Keybind> {
     quit_binds()
 }
 
+#[must_use]
+#[allow(clippy::missing_inline_in_public_items)]
 pub fn keybinds_home() -> Vec<Keybind> {
     let mut binds = quit_binds();
 
@@ -25,10 +29,14 @@ pub fn keybinds_home() -> Vec<Keybind> {
     binds
 }
 
-pub fn keybinds_exit() -> Vec<Keybind> {
+#[must_use]
+#[inline]
+pub const fn keybinds_exit() -> Vec<Keybind> {
     Vec::new()
 }
 
+#[must_use]
+#[allow(clippy::missing_inline_in_public_items)]
 pub fn keybinds_typing() -> Vec<Keybind> {
     vec![
         Keybind {
@@ -53,6 +61,10 @@ pub fn keybinds_typing() -> Vec<Keybind> {
     ]
 }
 
+#[allow(
+    clippy::missing_inline_in_public_items,
+    clippy::wildcard_enum_match_arm
+)]
 pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> Result<()> {
     if let Some(keybind) = app
         .state
@@ -64,13 +76,12 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> Result<()> {
     }
 
     match app.state {
-        StateMachine::Home { typing, .. } if typing => {
-            return add_to_search_input(key_event, app);
-        }
-        _ => return Ok(()),
+        StateMachine::Home { typing, .. } if typing => add_to_search_input(key_event, app),
+        _ => Ok(()),
     }
 }
 
+#[allow(clippy::unnecessary_wraps)]
 fn stop_app(_: KeyEvent, app: &mut App) -> Result<()> {
     app.events.push_back(Event::Exited);
     Ok(())
@@ -78,11 +89,13 @@ fn stop_app(_: KeyEvent, app: &mut App) -> Result<()> {
 
 // TODO custom type for tab/channel highlight?
 
-fn index_add(current_value: &usize, size: usize) -> usize {
+#[allow(clippy::integer_arithmetic)]
+const fn index_add(current_value: usize, size: usize) -> usize {
     (current_value + 1) % size
 }
 
-fn index_subtract(current_value: &usize, size: usize) -> usize {
+#[allow(clippy::integer_arithmetic)]
+const fn index_subtract(current_value: usize, size: usize) -> usize {
     (current_value + size - 1) % size
 }
 
@@ -98,26 +111,36 @@ fn cycle_tabs(key_event: KeyEvent, app: &mut App) -> Result<()> {
     Ok(())
 }
 
+#[allow(
+    clippy::unnecessary_wraps,
+    clippy::single_match,
+    clippy::wildcard_enum_match_arm
+)]
 fn tab_right(_: KeyEvent, app: &mut App) -> Result<()> {
     match app.state {
         StateMachine::Home {
             ref mut tab,
             tab_titles,
             ..
-        } => *tab = index_add(tab, tab_titles.len()),
+        } => *tab = index_add(*tab, tab_titles.len()),
         _ => {}
     }
 
     Ok(())
 }
 
+#[allow(
+    clippy::unnecessary_wraps,
+    clippy::single_match,
+    clippy::wildcard_enum_match_arm
+)]
 fn tab_left(_: KeyEvent, app: &mut App) -> Result<()> {
     match app.state {
         StateMachine::Home {
             ref mut tab,
             tab_titles,
             ..
-        } => *tab = index_subtract(tab, tab_titles.len()),
+        } => *tab = index_subtract(*tab, tab_titles.len()),
         _ => {}
     }
 
@@ -136,6 +159,12 @@ fn cycle_highlights(key_event: KeyEvent, app: &mut App) -> Result<()> {
     Ok(())
 }
 
+#[allow(
+    clippy::pattern_type_mismatch,
+    clippy::single_match,
+    clippy::unnecessary_wraps,
+    clippy::wildcard_enum_match_arm
+)]
 fn highlight_down(_: KeyEvent, app: &mut App) -> Result<()> {
     match &mut app.state {
         StateMachine::Home {
@@ -144,8 +173,8 @@ fn highlight_down(_: KeyEvent, app: &mut App) -> Result<()> {
             focused_panel,
             ..
         } => {
-            if *focused_panel == HomePanel::Favourites {
-                *channel_highlight = index_add(channel_highlight, channels.len());
+            if *focused_panel == Home::Favourites {
+                *channel_highlight = index_add(*channel_highlight, channels.len());
             }
         }
         _ => {}
@@ -154,6 +183,12 @@ fn highlight_down(_: KeyEvent, app: &mut App) -> Result<()> {
     Ok(())
 }
 
+#[allow(
+    clippy::pattern_type_mismatch,
+    clippy::single_match,
+    clippy::unnecessary_wraps,
+    clippy::wildcard_enum_match_arm
+)]
 fn highlight_up(_: KeyEvent, app: &mut App) -> Result<()> {
     match &mut app.state {
         StateMachine::Home {
@@ -162,8 +197,8 @@ fn highlight_up(_: KeyEvent, app: &mut App) -> Result<()> {
             focused_panel,
             ..
         } => {
-            if *focused_panel == HomePanel::Favourites {
-                *channel_highlight = index_subtract(channel_highlight, channels.len());
+            if *focused_panel == Home::Favourites {
+                *channel_highlight = index_subtract(*channel_highlight, channels.len());
             }
         }
         _ => {}
@@ -172,6 +207,13 @@ fn highlight_up(_: KeyEvent, app: &mut App) -> Result<()> {
     Ok(())
 }
 
+#[allow(
+    clippy::pattern_type_mismatch,
+    clippy::single_match,
+    clippy::unnecessary_wraps,
+    clippy::wildcard_enum_match_arm,
+    clippy::indexing_slicing
+)]
 fn select(_: KeyEvent, app: &mut App) -> Result<()> {
     match &mut app.state {
         StateMachine::Home {
@@ -181,13 +223,13 @@ fn select(_: KeyEvent, app: &mut App) -> Result<()> {
             ref mut typing,
             ..
         } => match focused_panel {
-            HomePanel::Favourites => {
+            Home::Favourites => {
                 app.events.push_back(Event::ChannelSelected(
                     channels[*channel_highlight].clone(),
                     true,
                 ));
             }
-            HomePanel::Search => {
+            Home::Search => {
                 *typing = true;
             }
         },
@@ -209,6 +251,12 @@ fn cycle_panels(key_event: KeyEvent, app: &mut App) -> Result<()> {
     Ok(())
 }
 
+#[allow(
+    clippy::pattern_type_mismatch,
+    clippy::single_match,
+    clippy::unnecessary_wraps,
+    clippy::wildcard_enum_match_arm
+)]
 fn panel_left(_: KeyEvent, app: &mut App) -> Result<()> {
     match &mut app.state {
         StateMachine::Home { focused_panel, .. } => {
@@ -220,6 +268,14 @@ fn panel_left(_: KeyEvent, app: &mut App) -> Result<()> {
     Ok(())
 }
 
+// TODO should there be a state function to handle these changes? or events??
+
+#[allow(
+    clippy::pattern_type_mismatch,
+    clippy::single_match,
+    clippy::unnecessary_wraps,
+    clippy::wildcard_enum_match_arm
+)]
 fn panel_right(_: KeyEvent, app: &mut App) -> Result<()> {
     match &mut app.state {
         StateMachine::Home { focused_panel, .. } => {
@@ -231,6 +287,12 @@ fn panel_right(_: KeyEvent, app: &mut App) -> Result<()> {
     Ok(())
 }
 
+#[allow(
+    clippy::pattern_type_mismatch,
+    clippy::single_match,
+    clippy::unnecessary_wraps,
+    clippy::wildcard_enum_match_arm
+)]
 fn stop_typing(_: KeyEvent, app: &mut App) -> Result<()> {
     match &mut app.state {
         StateMachine::Home { typing, .. } => {
@@ -242,6 +304,13 @@ fn stop_typing(_: KeyEvent, app: &mut App) -> Result<()> {
     Ok(())
 }
 
+#[allow(
+    clippy::pattern_type_mismatch,
+    clippy::single_match,
+    clippy::unnecessary_wraps,
+    clippy::wildcard_enum_match_arm,
+    clippy::indexing_slicing
+)]
 fn submit_search(_: KeyEvent, app: &mut App) -> Result<()> {
     match &mut app.state {
         StateMachine::Home {
@@ -281,6 +350,14 @@ fn submit_search(_: KeyEvent, app: &mut App) -> Result<()> {
     Ok(())
 }
 
+// TODO add CTRL backspace?
+
+#[allow(
+    clippy::pattern_type_mismatch,
+    clippy::single_match,
+    clippy::unnecessary_wraps,
+    clippy::wildcard_enum_match_arm
+)]
 fn remove_from_search_input(_: KeyEvent, app: &mut App) -> Result<()> {
     match app.state {
         StateMachine::Home {
@@ -298,6 +375,12 @@ fn remove_from_search_input(_: KeyEvent, app: &mut App) -> Result<()> {
     Ok(())
 }
 
+#[allow(
+    clippy::pattern_type_mismatch,
+    clippy::single_match,
+    clippy::unnecessary_wraps,
+    clippy::wildcard_enum_match_arm
+)]
 fn add_to_search_input(key_event: KeyEvent, app: &mut App) -> Result<()> {
     match app.state {
         StateMachine::Home {
@@ -341,7 +424,7 @@ fn tab_move_binds() -> Vec<Keybind> {
     triggers.append(&mut get_tab_left_keys());
 
     vec![Keybind {
-        triggers: triggers,
+        triggers,
         action: cycle_tabs,
     }]
 }
@@ -357,7 +440,7 @@ fn highlight_move_binds() -> Vec<Keybind> {
 
     vec![
         Keybind {
-            triggers: triggers,
+            triggers,
             action: cycle_highlights,
         },
         Keybind {
@@ -383,11 +466,16 @@ fn panel_move_binds() -> Vec<Keybind> {
     triggers.append(&mut get_panels_right_keys());
 
     vec![Keybind {
-        triggers: triggers,
+        triggers,
         action: cycle_panels,
     }]
 }
 
+#[allow(
+    clippy::missing_inline_in_public_items,
+    clippy::as_conversions,
+    clippy::fn_to_numeric_cast_any
+)]
 pub fn function_to_string(function: KeyBindFn) -> String {
     let func: usize = function as usize;
 
@@ -400,6 +488,7 @@ pub fn function_to_string(function: KeyBindFn) -> String {
         f if f == stop_typing as usize => String::from("Cancel"),
         f if f == submit_search as usize => String::from("Submit"),
         f if f == remove_from_search_input as usize => String::from("Delete"),
+        f if f == top_bottom_highlights as usize => String::from("Go to List Top/Bottom"),
         _ => String::from("Unknown"),
     }
 }
@@ -449,7 +538,7 @@ fn get_highlights_bottom_keys() -> Vec<KeyEvent> {
         .iter_mut()
         .map(|event| {
             event.modifiers = KeyModifiers::CONTROL;
-            event.clone()
+            *event
         })
         .collect::<Vec<KeyEvent>>()
 }
@@ -459,7 +548,7 @@ fn get_highlights_top_keys() -> Vec<KeyEvent> {
         .iter_mut()
         .map(|event| {
             event.modifiers = KeyModifiers::CONTROL;
-            event.clone()
+            *event
         })
         .collect::<Vec<KeyEvent>>()
 }
@@ -476,6 +565,13 @@ fn top_bottom_highlights(key_event: KeyEvent, app: &mut App) -> Result<()> {
     Ok(())
 }
 
+#[allow(
+    clippy::pattern_type_mismatch,
+    clippy::single_match,
+    clippy::unnecessary_wraps,
+    clippy::wildcard_enum_match_arm,
+    clippy::integer_arithmetic
+)]
 fn highlight_bottom(_: KeyEvent, app: &mut App) -> Result<()> {
     match &mut app.state {
         StateMachine::Home {
@@ -484,7 +580,7 @@ fn highlight_bottom(_: KeyEvent, app: &mut App) -> Result<()> {
             focused_panel,
             ..
         } => {
-            if *focused_panel == HomePanel::Favourites {
+            if *focused_panel == Home::Favourites {
                 *channel_highlight = channels.len() - 1;
             }
         }
@@ -494,6 +590,12 @@ fn highlight_bottom(_: KeyEvent, app: &mut App) -> Result<()> {
     Ok(())
 }
 
+#[allow(
+    clippy::pattern_type_mismatch,
+    clippy::single_match,
+    clippy::unnecessary_wraps,
+    clippy::wildcard_enum_match_arm
+)]
 fn highlight_top(_: KeyEvent, app: &mut App) -> Result<()> {
     match &mut app.state {
         StateMachine::Home {
@@ -501,7 +603,7 @@ fn highlight_top(_: KeyEvent, app: &mut App) -> Result<()> {
             focused_panel,
             ..
         } => {
-            if *focused_panel == HomePanel::Favourites {
+            if *focused_panel == Home::Favourites {
                 *channel_highlight = 0;
             }
         }

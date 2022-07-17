@@ -2,10 +2,10 @@ use crate::{
     channel::{load_channels, Channel, Status},
     handler::{keybinds_exit, keybinds_home, keybinds_startup, keybinds_typing},
     keybind::Keybind,
-    panel::HomePanel,
+    panel::Home,
     popup::Popup,
     render,
-    secret::{ExposeSecret, Secret},
+    secret::{Expose, Secret},
     theme::Theme,
     twitch_account::TwitchAccount,
 };
@@ -25,6 +25,7 @@ pub enum Event {
     ChannelSelected(Channel, bool),
 }
 
+#[allow(clippy::module_name_repetitions)]
 pub enum StateMachine {
     Startup {
         account_loaded: bool,
@@ -43,7 +44,7 @@ pub enum StateMachine {
         popup: Option<Popup>,
         typing: bool,
         search_input: Vec<char>,
-        focused_panel: HomePanel,
+        focused_panel: Home,
     },
     // Follows(StateFollows),
     Exit,
@@ -61,24 +62,30 @@ pub trait State {
 }
 
 #[async_trait]
+#[allow(clippy::missing_inline_in_public_items)]
 impl State for StateMachine {
     fn keybinds(&self) -> Vec<Keybind> {
-        match self {
-            StateMachine::Startup { .. } => keybinds_startup(),
-            StateMachine::Home { typing, .. } => {
-                if *typing {
+        match *self {
+            Self::Startup { .. } => keybinds_startup(),
+            Self::Home { typing, .. } => {
+                if typing {
                     keybinds_typing()
                 } else {
                     keybinds_home()
                 }
             }
-            StateMachine::Exit => keybinds_exit(),
+            Self::Exit => keybinds_exit(),
         }
     }
 
+    #[allow(
+        clippy::pattern_type_mismatch,
+        clippy::integer_arithmetic,
+        clippy::indexing_slicing
+    )]
     async fn tick(&mut self, events: &mut VecDeque<Event>) -> bool {
         match self {
-            StateMachine::Startup {
+            Self::Startup {
                 account_loaded,
                 ref mut timer,
                 startup_duration,
@@ -91,17 +98,18 @@ impl State for StateMachine {
                         Event::AccountLoaded
                     } else {
                         Event::Exited
-                    })
+                    });
                 }
 
                 true
             }
-            StateMachine::Home {
+            Self::Home {
                 channels,
                 channel_check,
                 ..
             } => {
                 while let Ok((handle, status)) = channel_check.try_recv() {
+                    #[allow(clippy::expect_used)]
                     let index: usize = channels
                         .iter()
                         .position(|channel| channel.handle == handle && channel.status != status)
@@ -111,42 +119,42 @@ impl State for StateMachine {
 
                 true
             }
-            StateMachine::Exit => false,
+            Self::Exit => false,
         }
     }
 
     fn render<B: Backend>(&self, theme: &Theme, frame: &mut Frame<'_, B>) {
-        match self {
+        match *self {
             StateMachine::Startup {
                 account_loaded,
                 timer,
                 ..
             } => {
-                if *account_loaded {
-                    render::startup_animation(theme, frame, &timer)
+                if account_loaded {
+                    render::startup_animation(theme, frame, &timer);
                 } else {
-                    render::account_missing(theme, frame, &timer)
+                    render::account_missing(theme, frame, &timer);
                 }
             }
             StateMachine::Home {
                 tab,
                 tab_titles,
                 channel_highlight,
-                channels,
-                popup,
+                ref channels,
+                ref popup,
                 typing,
-                search_input,
-                focused_panel,
+                ref search_input,
+                ref focused_panel,
                 ..
-            } => render::render_home(
+            } => render::home(
                 theme,
                 frame,
-                tab,
-                tab_titles,
-                channel_highlight,
+                &tab,
+                &tab_titles,
+                &channel_highlight,
                 channels,
                 popup,
-                typing,
+                &typing,
                 search_input,
                 focused_panel,
                 &self.keybinds(),
@@ -155,9 +163,11 @@ impl State for StateMachine {
         }
     }
 
+    #[allow(clippy::unwrap_in_result, clippy::pattern_type_mismatch)]
     fn transition(&self, event: Event) -> Option<StateMachine> {
         match (self, event) {
             (StateMachine::Startup { twitch_account, .. }, Event::AccountLoaded) => {
+                #[allow(clippy::expect_used)]
                 let account = twitch_account
                     .as_ref()
                     .expect("Made it past startup without loading Twitch account");
@@ -166,11 +176,11 @@ impl State for StateMachine {
                     Ok((channels, channel_check)) => (channels, channel_check),
                     Err(e) => {
                         eprintln!("Error loading channels: {}", e);
-                        return Some(StateMachine::Exit);
+                        return Some(Self::Exit);
                     }
                 };
 
-                Some(StateMachine::Home {
+                Some(Self::Home {
                     tab: 0,
                     tab_titles: TAB_TITLES,
                     channel_highlight: 0,
@@ -178,26 +188,21 @@ impl State for StateMachine {
                     twitch_account: Some(TwitchAccount {
                         username: String::from(account.username.as_str()),
                         user_id: String::from(account.user_id.as_str()),
-                        client_id: Secret::new(account.client_id.expose_value().to_string()),
-                        client_secret: Secret::new(
-                            account.client_secret.expose_value().to_string(),
-                        ),
+                        client_id: Secret::new(account.client_id.expose_value().to_owned()),
+                        client_secret: Secret::new(account.client_secret.expose_value().to_owned()),
                         user_access_token: Secret::new(
-                            account.user_access_token.expose_value().to_string(),
+                            account.user_access_token.expose_value().to_owned(),
                         ),
-                        refresh_token: Secret::new(
-                            account.refresh_token.expose_value().to_string(),
-                        ),
+                        refresh_token: Secret::new(account.refresh_token.expose_value().to_owned()),
                     }),
                     channel_check,
                     popup: None,
                     typing: false,
                     search_input: Vec::new(),
-                    focused_panel: HomePanel::default(),
+                    focused_panel: Home::default(),
                 })
             }
-            (StateMachine::Home { .. }, Event::Exited) => Some(StateMachine::Exit),
-            (StateMachine::Home { .. }, Event::ChannelSelected(channel, chat)) => {
+            (Self::Home { .. }, Event::ChannelSelected(channel, chat)) => {
                 if let Err(e) = channel.launch() {
                     eprintln!("Error opening stream: {}", e);
                 }
@@ -210,7 +215,10 @@ impl State for StateMachine {
 
                 None
             }
-            (StateMachine::Startup { .. }, Event::Exited) => Some(StateMachine::Exit),
+            #[allow(clippy::unnested_or_patterns)]
+            (Self::Home { .. }, Event::Exited) | (Self::Startup { .. }, Event::Exited) => {
+                Some(Self::Exit)
+            }
             _ => None,
         }
     }

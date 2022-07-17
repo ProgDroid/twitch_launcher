@@ -14,7 +14,7 @@ pub enum Event {
 }
 
 #[derive(Debug)]
-pub struct EventHandler {
+pub struct Handler {
     #[allow(dead_code)]
     sender: mpsc::Sender<Event>,
     receiver: mpsc::Receiver<Event>,
@@ -22,7 +22,10 @@ pub struct EventHandler {
     handler: thread::JoinHandle<Status>,
 }
 
-impl EventHandler {
+#[allow(clippy::missing_inline_in_public_items)]
+impl Handler {
+    #[must_use]
+    #[allow(clippy::shadow_reuse, clippy::expect_used)]
     pub fn new(tick_rate: u64) -> Self {
         let tick_rate = Duration::from_millis(tick_rate);
         let (sender, receiver) = mpsc::channel();
@@ -41,7 +44,7 @@ impl EventHandler {
                             CrosstermEvent::Mouse(e) => sender.send(Event::Mouse(e)),
                             CrosstermEvent::Resize(w, h) => sender.send(Event::Resize(w, h)),
                         }
-                        .expect("failed to send terminal event")
+                        .expect("failed to send terminal event");
                     }
 
                     if last_tick.elapsed() >= tick_rate {

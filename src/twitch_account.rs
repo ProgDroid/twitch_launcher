@@ -1,4 +1,4 @@
-use crate::secret::{ExposeSecret, Secret};
+use crate::secret::{Expose, Secret};
 use serde::{Deserialize, Serialize};
 use std::fs::{read_to_string, write};
 use std::io::{Error, ErrorKind, Result};

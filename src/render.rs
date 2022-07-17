@@ -1,7 +1,7 @@
 use crate::{
     channel::{Channel, Status},
     keybind::Keybind,
-    panel::HomePanel,
+    panel::Home,
     popup::Popup,
     state::TabTitles,
     theme::{Elevation, Theme},
@@ -29,18 +29,23 @@ enum Tab {
 }
 
 impl From<usize> for Tab {
-    fn from(input: usize) -> Tab {
+    fn from(input: usize) -> Self {
         match input {
-            0 => Tab::Home,
-            1 => Tab::Follows,
+            0 => Self::Home,
+            1 => Self::Follows,
             _ => {
                 eprintln!("Menu Item does not exist, going Home");
-                Tab::Home
+                Self::Home
             }
         }
     }
 }
 
+#[allow(
+    clippy::missing_inline_in_public_items,
+    clippy::trivially_copy_pass_by_ref,
+    clippy::indexing_slicing
+)]
 pub fn startup_animation<B: Backend>(theme: &Theme, frame: &mut Frame<'_, B>, timer: &u64) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
@@ -56,7 +61,7 @@ pub fn startup_animation<B: Backend>(theme: &Theme, frame: &mut Frame<'_, B>, ti
         .split(frame.size());
 
     frame.render_widget(
-        Paragraph::new(format!("Starting{}", animate_ellipsis(&timer)))
+        Paragraph::new(format!("Starting{}", animate_ellipsis(timer)))
             .block(
                 Block::default().style(
                     Style::default()
@@ -69,6 +74,11 @@ pub fn startup_animation<B: Backend>(theme: &Theme, frame: &mut Frame<'_, B>, ti
     );
 }
 
+#[allow(
+    clippy::missing_inline_in_public_items,
+    clippy::trivially_copy_pass_by_ref,
+    clippy::indexing_slicing
+)]
 pub fn account_missing<B: Backend>(theme: &Theme, frame: &mut Frame<'_, B>, timer: &u64) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
@@ -86,7 +96,7 @@ pub fn account_missing<B: Backend>(theme: &Theme, frame: &mut Frame<'_, B>, time
     frame.render_widget(
         Paragraph::new(format!(
             "Account not loaded, please configure{}",
-            animate_ellipsis(&timer)
+            animate_ellipsis(timer)
         ))
         .block(Block::default().style(Style::default()))
         .style(Style::default().fg(theme.text.as_tui_colour()))
@@ -95,27 +105,36 @@ pub fn account_missing<B: Backend>(theme: &Theme, frame: &mut Frame<'_, B>, time
     );
 }
 
-pub fn render_home<B: Backend>(
+// TODO consider breaking this up
+
+#[allow(
+    clippy::too_many_arguments,
+    clippy::missing_inline_in_public_items,
+    clippy::trivially_copy_pass_by_ref,
+    clippy::indexing_slicing
+)]
+pub fn home<B: Backend>(
     theme: &Theme,
     frame: &mut Frame<'_, B>,
     tab: &usize,
     tab_titles: &TabTitles,
     channel_highlight: &usize,
-    channels: &Vec<Channel>,
+    channels: &[Channel],
     popup: &Option<Popup>,
     typing: &bool,
-    search_input: &Vec<char>,
-    focused_panel: &HomePanel,
-    keybinds: &Vec<Keybind>,
+    search_input: &[char],
+    focused_panel: &Home,
+    keybinds: &[Keybind],
 ) {
     let area = frame.size();
 
+    #[allow(clippy::pattern_type_mismatch)]
     if let Some(p) = popup {
-        let area = generate_popup_layout(area);
+        let popup_area = generate_popup_layout(area);
 
         frame.render_widget(
             generate_background_widget(theme.background.as_tui_colour()),
-            area,
+            popup_area,
         );
 
         let paragraph = Paragraph::new(p.message.as_str())
@@ -127,7 +146,7 @@ pub fn render_home<B: Backend>(
             )
             .alignment(Alignment::Center);
 
-        frame.render_widget(paragraph, area);
+        frame.render_widget(paragraph, popup_area);
         return;
     }
 
@@ -156,8 +175,8 @@ pub fn render_home<B: Backend>(
         Tab::Home => {
             let list_chunks = generate_favourites_layout(content_area[0]);
 
-            let favourites_focused = *focused_panel == HomePanel::Favourites;
-            let search_focused = *focused_panel == HomePanel::Search;
+            let favourites_focused = *focused_panel == Home::Favourites;
+            let search_focused = *focused_panel == Home::Search;
 
             frame.render_widget(
                 generate_title(
@@ -175,7 +194,7 @@ pub fn render_home<B: Backend>(
             frame.render_stateful_widget(
                 generate_favourites_widget(
                     theme,
-                    &channels,
+                    channels,
                     content_area[0].width,
                     favourites_focused,
                 ),
@@ -211,9 +230,10 @@ pub fn render_home<B: Backend>(
     frame.render_widget(generate_keys_widget(theme, keybinds), app_layout[3]);
 }
 
+#[allow(clippy::integer_arithmetic, clippy::as_conversions)]
 fn generate_favourites_widget<'a>(
     theme: &Theme,
-    channels: &'a Vec<Channel>,
+    channels: &'a [Channel],
     width: u16,
     focused: bool,
 ) -> List<'a> {
@@ -247,7 +267,7 @@ fn generate_favourites_widget<'a>(
                     ),
                     text_style,
                 ),
-                Span::styled(format!("{}", a.status.message()), status_style),
+                Span::styled(a.status.message(), status_style),
             ]))
         })
         .collect();
@@ -280,11 +300,9 @@ fn generate_favourites_widget<'a>(
 //         )
 // }
 
+#[allow(clippy::trivially_copy_pass_by_ref)]
 fn animate_ellipsis(timer: &u64) -> String {
-    format!(
-        "{}",
-        (0..((timer / 2) % 4)).map(|_| ".").collect::<String>()
-    )
+    (0..((timer / 2) % 4)).map(|_| ".").collect::<String>()
 }
 
 fn generate_title<'a>(
@@ -304,7 +322,7 @@ fn generate_title<'a>(
         Spans::from(vec![
             Span::raw(" "),
             Span::styled(
-                format!("{}", title),
+                title.to_owned(),
                 Style::default()
                     .fg(text_colour)
                     .add_modifier(Modifier::BOLD),
@@ -316,7 +334,12 @@ fn generate_title<'a>(
     .alignment(Alignment::Left)
 }
 
-fn generate_popup_layout<'a>(r: Rect) -> Rect {
+#[allow(
+    clippy::integer_arithmetic,
+    clippy::integer_division,
+    clippy::indexing_slicing
+)]
+fn generate_popup_layout(r: Rect) -> Rect {
     let layout = Layout::default()
         .direction(Direction::Vertical)
         .constraints(
@@ -342,9 +365,10 @@ fn generate_popup_layout<'a>(r: Rect) -> Rect {
         .split(layout[1])[1]
 }
 
+#[allow(clippy::trivially_copy_pass_by_ref)]
 fn generate_channel_search<'a>(
     theme: &Theme,
-    search_input: &Vec<char>,
+    search_input: &[char],
     typing: &bool,
     focused: bool,
 ) -> Paragraph<'a> {
@@ -437,6 +461,7 @@ fn generate_favourites_layout(area: Rect) -> Vec<Rect> {
         .split(area)
 }
 
+#[allow(clippy::indexing_slicing)]
 fn generate_search_layout(area: Rect) -> Vec<Rect> {
     let search_chunks = Layout::default()
         .direction(Direction::Horizontal)
@@ -463,7 +488,7 @@ fn generate_search_layout(area: Rect) -> Vec<Rect> {
         .split(search_chunks[1])
 }
 
-fn generate_keys_widget<'a>(theme: &Theme, keybinds: &Vec<Keybind>) -> Paragraph<'a> {
+fn generate_keys_widget<'a>(theme: &Theme, keybinds: &[Keybind]) -> Paragraph<'a> {
     let info_text: Vec<Span> = keybinds
         .iter()
         .enumerate()

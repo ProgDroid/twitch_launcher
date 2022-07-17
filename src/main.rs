@@ -5,7 +5,7 @@ use std::io;
 use tui::backend::CrosstermBackend;
 use tui::Terminal;
 use twitch_launcher::app::{App, Result};
-use twitch_launcher::event::{Event, EventHandler};
+use twitch_launcher::event::{Event, Handler};
 use twitch_launcher::handler::handle_key_events;
 use twitch_launcher::tui::Tui;
 
@@ -17,7 +17,7 @@ async fn main() -> Result<()> {
 
     let backend = CrosstermBackend::new(io::stderr());
     let terminal = Terminal::new(backend)?;
-    let events = EventHandler::new(TICK_INTERVAL);
+    let events = Handler::new(TICK_INTERVAL);
     let mut tui = Tui::new(terminal, events);
     tui.init()?;
 
@@ -27,8 +27,7 @@ async fn main() -> Result<()> {
         match tui.events.next()? {
             Event::Tick => app.tick().await,
             Event::Key(key_event) => handle_key_events(key_event, &mut app)?,
-            Event::Mouse(_) => {}
-            Event::Resize(_, _) => {}
+            Event::Mouse(_) | Event::Resize(_, _) => {}
         }
     }
 

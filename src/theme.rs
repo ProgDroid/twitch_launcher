@@ -27,23 +27,33 @@ pub enum Elevation {
 
 // TODO implement theme loading/saving
 
+#[allow(clippy::missing_inline_in_public_items)]
 impl CustomColour {
-    pub fn blend(self: &Self, color: CustomColour, factor: f32) -> CustomColour {
-        CustomColour {
+    #[must_use]
+    #[allow(
+        clippy::needless_arbitrary_self_type,
+        clippy::use_self,
+        clippy::as_conversions,
+        clippy::cast_possible_truncation,
+        clippy::cast_sign_loss,
+        clippy::float_arithmetic
+    )]
+    pub fn blend(self: &Self, color: &CustomColour, factor: f32) -> Self {
+        Self {
             r: clamp(
-                (self.r as f32) * (1.0 - factor) + (color.r as f32) * factor,
+                f32::from(self.r).mul_add(1.0 - factor, f32::from(color.r) * factor),
                 0.0,
                 255.0,
             )
             .round() as u8,
             g: clamp(
-                (self.g as f32) * (1.0 - factor) + (color.g as f32) * factor,
+                f32::from(self.g).mul_add(1.0 - factor, f32::from(color.g) * factor),
                 0.0,
                 255.0,
             )
             .round() as u8,
             b: clamp(
-                (self.b as f32) * (1.0 - factor) + (color.b as f32) * factor,
+                f32::from(self.b).mul_add(1.0 - factor, f32::from(color.b) * factor),
                 0.0,
                 255.0,
             )
@@ -138,6 +148,7 @@ impl CustomColour {
         }
     }
 
+    #[inline]
     pub fn as_tui_colour(self: &Self) -> Color {
         Color::Rgb(self.r, self.g, self.b)
     }
@@ -189,9 +200,9 @@ impl Default for Theme {
         Theme {
             background: BG_GREY,
             primary: CustomColour::from(Color::Yellow),
-            secondary: CustomColour::from(Color::LightRed).blend(BLACK, 0.1),
+            secondary: CustomColour::from(Color::LightRed).blend(&BLACK, 0.1),
             text: WHITE,
-            text_dimmed: WHITE.blend(BLACK, 0.5),
+            text_dimmed: WHITE.blend(&BLACK, 0.5),
             cursor: Cursor::default(),
         }
     }
@@ -199,6 +210,6 @@ impl Default for Theme {
 
 impl Theme {
     pub fn elevation(self: &Self, level: Elevation) -> CustomColour {
-        self.background.blend(WHITE, ELEVATION[level as usize])
+        self.background.blend(&WHITE, ELEVATION[level as usize])
     }
 }
