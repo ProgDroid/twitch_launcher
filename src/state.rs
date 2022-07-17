@@ -29,7 +29,7 @@ pub enum StateMachine {
     Startup {
         account_loaded: bool,
         timer: u64,
-        startup_duration: u16,
+        startup_duration: u64,
         twitch_account: Option<TwitchAccount>,
         popup: Option<Popup>,
     },
@@ -86,7 +86,7 @@ impl State for StateMachine {
             } => {
                 *timer += 1;
 
-                if *timer > (*startup_duration).into() {
+                if *timer > (*startup_duration) {
                     events.push_back(if *account_loaded {
                         Event::AccountLoaded
                     } else {

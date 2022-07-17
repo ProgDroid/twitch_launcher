@@ -6,7 +6,7 @@ use crate::{
 use std::{collections::VecDeque, error};
 use tui::{backend::Backend, terminal::Frame};
 
-const STARTUP_DURATION: u16 = 2;
+const STARTUP_DURATION: u64 = 2;
 
 pub type AppResult<T> = std::result::Result<T, Box<dyn error::Error>>;
 
@@ -37,7 +37,7 @@ impl App {
             state: StateMachine::Startup {
                 account_loaded,
                 timer: 0,
-                startup_duration: ticks_from_seconds(tick_rate, STARTUP_DURATION as u64) as u16,
+                startup_duration: ticks_from_seconds(tick_rate, STARTUP_DURATION),
                 twitch_account,
                 popup: None,
             },
@@ -60,6 +60,7 @@ impl App {
     }
 }
 
-fn ticks_from_seconds(tick_rate: u64, seconds: u64) -> u64 {
-    (1000u64 / tick_rate) * seconds
+#[allow(clippy::integer_arithmetic, clippy::integer_division)]
+const fn ticks_from_seconds(tick_rate: u64, seconds: u64) -> u64 {
+    (1000_u64 / tick_rate) * seconds
 }
