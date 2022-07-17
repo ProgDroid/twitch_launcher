@@ -8,8 +8,9 @@ use tui::{backend::Backend, terminal::Frame};
 
 const STARTUP_DURATION: u64 = 2;
 
-pub type AppResult<T> = std::result::Result<T, Box<dyn error::Error>>;
+pub type Result<T> = std::result::Result<T, Box<dyn error::Error>>;
 
+#[allow(clippy::exhaustive_structs)]
 pub struct App {
     pub running: bool,
     pub theme: Theme,
@@ -18,6 +19,7 @@ pub struct App {
     pub events: VecDeque<Event>,
 }
 
+#[allow(clippy::missing_inline_in_public_items)]
 impl App {
     pub async fn new(tick_rate: u64) -> Self {
         let twitch_account: Option<TwitchAccount> = match TwitchAccount::load().await {
@@ -25,10 +27,7 @@ impl App {
             Err(_) => None,
         };
 
-        let account_loaded = match twitch_account {
-            Some(_) => true,
-            None => false,
-        };
+        let account_loaded = twitch_account.is_some();
 
         Self {
             running: true,

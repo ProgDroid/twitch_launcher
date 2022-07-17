@@ -4,7 +4,7 @@
 use std::io;
 use tui::backend::CrosstermBackend;
 use tui::Terminal;
-use twitch_launcher::app::{App, AppResult};
+use twitch_launcher::app::{App, Result};
 use twitch_launcher::event::{Event, EventHandler};
 use twitch_launcher::handler::handle_key_events;
 use twitch_launcher::tui::Tui;
@@ -12,7 +12,7 @@ use twitch_launcher::tui::Tui;
 const TICK_INTERVAL: u64 = 250;
 
 #[tokio::main]
-async fn main() -> AppResult<()> {
+async fn main() -> Result<()> {
     let mut app = App::new(TICK_INTERVAL).await;
 
     let backend = CrosstermBackend::new(io::stderr());

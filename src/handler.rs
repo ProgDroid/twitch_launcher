@@ -1,6 +1,6 @@
 use crate::{
-    app::{App, AppResult},
-    channel::{Channel, ChannelStatus},
+    app::{App, Result},
+    channel::{Channel, Status},
     keybind::{KeyBindFn, Keybind},
     panel::{HomePanel, Panel},
     state::{Event, State, StateMachine},
@@ -53,7 +53,7 @@ pub fn keybinds_typing() -> Vec<Keybind> {
     ]
 }
 
-pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
+pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> Result<()> {
     if let Some(keybind) = app
         .state
         .keybinds()
@@ -71,7 +71,7 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
     }
 }
 
-fn stop_app(_: KeyEvent, app: &mut App) -> AppResult<()> {
+fn stop_app(_: KeyEvent, app: &mut App) -> Result<()> {
     app.events.push_back(Event::Exited);
     Ok(())
 }
@@ -86,7 +86,7 @@ fn index_subtract(current_value: &usize, size: usize) -> usize {
     (current_value + size - 1) % size
 }
 
-fn cycle_tabs(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
+fn cycle_tabs(key_event: KeyEvent, app: &mut App) -> Result<()> {
     if get_tab_right_keys().contains(&key_event) {
         return tab_right(key_event, app);
     }
@@ -98,7 +98,7 @@ fn cycle_tabs(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
     Ok(())
 }
 
-fn tab_right(_: KeyEvent, app: &mut App) -> AppResult<()> {
+fn tab_right(_: KeyEvent, app: &mut App) -> Result<()> {
     match app.state {
         StateMachine::Home {
             ref mut tab,
@@ -111,7 +111,7 @@ fn tab_right(_: KeyEvent, app: &mut App) -> AppResult<()> {
     Ok(())
 }
 
-fn tab_left(_: KeyEvent, app: &mut App) -> AppResult<()> {
+fn tab_left(_: KeyEvent, app: &mut App) -> Result<()> {
     match app.state {
         StateMachine::Home {
             ref mut tab,
@@ -124,7 +124,7 @@ fn tab_left(_: KeyEvent, app: &mut App) -> AppResult<()> {
     Ok(())
 }
 
-fn cycle_highlights(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
+fn cycle_highlights(key_event: KeyEvent, app: &mut App) -> Result<()> {
     if get_highlights_down_keys().contains(&key_event) {
         return highlight_down(key_event, app);
     }
@@ -136,7 +136,7 @@ fn cycle_highlights(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
     Ok(())
 }
 
-fn highlight_down(_: KeyEvent, app: &mut App) -> AppResult<()> {
+fn highlight_down(_: KeyEvent, app: &mut App) -> Result<()> {
     match &mut app.state {
         StateMachine::Home {
             ref mut channel_highlight,
@@ -154,7 +154,7 @@ fn highlight_down(_: KeyEvent, app: &mut App) -> AppResult<()> {
     Ok(())
 }
 
-fn highlight_up(_: KeyEvent, app: &mut App) -> AppResult<()> {
+fn highlight_up(_: KeyEvent, app: &mut App) -> Result<()> {
     match &mut app.state {
         StateMachine::Home {
             ref mut channel_highlight,
@@ -172,7 +172,7 @@ fn highlight_up(_: KeyEvent, app: &mut App) -> AppResult<()> {
     Ok(())
 }
 
-fn select(_: KeyEvent, app: &mut App) -> AppResult<()> {
+fn select(_: KeyEvent, app: &mut App) -> Result<()> {
     match &mut app.state {
         StateMachine::Home {
             channels,
@@ -197,7 +197,7 @@ fn select(_: KeyEvent, app: &mut App) -> AppResult<()> {
     Ok(())
 }
 
-fn cycle_panels(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
+fn cycle_panels(key_event: KeyEvent, app: &mut App) -> Result<()> {
     if get_panels_left_keys().contains(&key_event) {
         return panel_left(key_event, app);
     }
@@ -209,7 +209,7 @@ fn cycle_panels(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
     Ok(())
 }
 
-fn panel_left(_: KeyEvent, app: &mut App) -> AppResult<()> {
+fn panel_left(_: KeyEvent, app: &mut App) -> Result<()> {
     match &mut app.state {
         StateMachine::Home { focused_panel, .. } => {
             *focused_panel = focused_panel.left();
@@ -220,7 +220,7 @@ fn panel_left(_: KeyEvent, app: &mut App) -> AppResult<()> {
     Ok(())
 }
 
-fn panel_right(_: KeyEvent, app: &mut App) -> AppResult<()> {
+fn panel_right(_: KeyEvent, app: &mut App) -> Result<()> {
     match &mut app.state {
         StateMachine::Home { focused_panel, .. } => {
             *focused_panel = focused_panel.right();
@@ -231,7 +231,7 @@ fn panel_right(_: KeyEvent, app: &mut App) -> AppResult<()> {
     Ok(())
 }
 
-fn stop_typing(_: KeyEvent, app: &mut App) -> AppResult<()> {
+fn stop_typing(_: KeyEvent, app: &mut App) -> Result<()> {
     match &mut app.state {
         StateMachine::Home { typing, .. } => {
             *typing = false;
@@ -242,7 +242,7 @@ fn stop_typing(_: KeyEvent, app: &mut App) -> AppResult<()> {
     Ok(())
 }
 
-fn submit_search(_: KeyEvent, app: &mut App) -> AppResult<()> {
+fn submit_search(_: KeyEvent, app: &mut App) -> Result<()> {
     match &mut app.state {
         StateMachine::Home {
             typing,
@@ -268,7 +268,7 @@ fn submit_search(_: KeyEvent, app: &mut App) -> AppResult<()> {
                 let channel = Channel {
                     friendly_name: String::new(),
                     handle,
-                    status: ChannelStatus::Unknown,
+                    status: Status::Unknown,
                 };
 
                 app.events
@@ -281,7 +281,7 @@ fn submit_search(_: KeyEvent, app: &mut App) -> AppResult<()> {
     Ok(())
 }
 
-fn remove_from_search_input(_: KeyEvent, app: &mut App) -> AppResult<()> {
+fn remove_from_search_input(_: KeyEvent, app: &mut App) -> Result<()> {
     match app.state {
         StateMachine::Home {
             typing,
@@ -298,7 +298,7 @@ fn remove_from_search_input(_: KeyEvent, app: &mut App) -> AppResult<()> {
     Ok(())
 }
 
-fn add_to_search_input(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
+fn add_to_search_input(key_event: KeyEvent, app: &mut App) -> Result<()> {
     match app.state {
         StateMachine::Home {
             typing,
@@ -464,7 +464,7 @@ fn get_highlights_top_keys() -> Vec<KeyEvent> {
         .collect::<Vec<KeyEvent>>()
 }
 
-fn top_bottom_highlights(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
+fn top_bottom_highlights(key_event: KeyEvent, app: &mut App) -> Result<()> {
     if get_highlights_bottom_keys().contains(&key_event) {
         return highlight_bottom(key_event, app);
     }
@@ -476,7 +476,7 @@ fn top_bottom_highlights(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
     Ok(())
 }
 
-fn highlight_bottom(_: KeyEvent, app: &mut App) -> AppResult<()> {
+fn highlight_bottom(_: KeyEvent, app: &mut App) -> Result<()> {
     match &mut app.state {
         StateMachine::Home {
             ref mut channel_highlight,
@@ -494,7 +494,7 @@ fn highlight_bottom(_: KeyEvent, app: &mut App) -> AppResult<()> {
     Ok(())
 }
 
-fn highlight_top(_: KeyEvent, app: &mut App) -> AppResult<()> {
+fn highlight_top(_: KeyEvent, app: &mut App) -> Result<()> {
     match &mut app.state {
         StateMachine::Home {
             ref mut channel_highlight,

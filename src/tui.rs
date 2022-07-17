@@ -1,4 +1,4 @@
-use crate::app::{App, AppResult};
+use crate::app::{App, Result};
 use crate::event::EventHandler;
 use crossterm::event::{DisableMouseCapture, EnableMouseCapture};
 use crossterm::terminal::{self, EnterAlternateScreen, LeaveAlternateScreen};
@@ -17,7 +17,7 @@ impl<B: Backend> Tui<B> {
         Self { terminal, events }
     }
 
-    pub fn init(&mut self) -> AppResult<()> {
+    pub fn init(&mut self) -> Result<()> {
         terminal::enable_raw_mode()?;
         crossterm::execute!(io::stderr(), EnterAlternateScreen, EnableMouseCapture)?;
         self.terminal.hide_cursor()?;
@@ -25,12 +25,12 @@ impl<B: Backend> Tui<B> {
         Ok(())
     }
 
-    pub fn draw(&mut self, app: &mut App) -> AppResult<()> {
+    pub fn draw(&mut self, app: &mut App) -> Result<()> {
         self.terminal.draw(|frame| app.render(frame))?;
         Ok(())
     }
 
-    pub fn exit(&mut self) -> AppResult<()> {
+    pub fn exit(&mut self) -> Result<()> {
         terminal::disable_raw_mode()?;
         crossterm::execute!(io::stderr(), LeaveAlternateScreen, DisableMouseCapture)?;
         self.terminal.show_cursor()?;

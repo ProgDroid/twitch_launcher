@@ -18,28 +18,32 @@ use twitch_api2::{
 
 const CHANNELS_FILE: &str = "channels.json";
 
+#[allow(clippy::exhaustive_enums)]
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[repr(usize)]
-pub enum ChannelStatus {
+pub enum Status {
     Awaiting = 0,
     Online = 1,
     Offline = 2,
     Unknown = 3,
 }
 
-impl Default for ChannelStatus {
+impl Default for Status {
+    #[allow(clippy::missing_inline_in_public_items)]
     fn default() -> Self {
-        ChannelStatus::Awaiting
+        Self::Awaiting
     }
 }
 
-impl ChannelStatus {
-    pub fn message(self: &Self) -> &str {
+impl Status {
+    #[must_use]
+    #[allow(clippy::missing_inline_in_public_items)]
+    pub const fn message(&self) -> &'static str {
         match self {
-            ChannelStatus::Awaiting => "...  ",
-            ChannelStatus::Online => "online",
-            ChannelStatus::Offline => "offline",
-            ChannelStatus::Unknown => "unknown",
+            Self::Awaiting => "...  ",
+            Self::Online => "online",
+            Self::Offline => "offline",
+            Self::Unknown => "unknown",
         }
     }
 }
@@ -48,12 +52,12 @@ impl ChannelStatus {
 pub struct Channel {
     pub friendly_name: String,
     pub handle: String,
-    #[serde(default = "ChannelStatus::default")]
-    pub status: ChannelStatus,
+    #[serde(default = "Status::default")]
+    pub status: Status,
 }
 
 impl Channel {
-    pub async fn update_status(handle: String, user_access_token: Secret) -> ChannelStatus {
+    pub async fn update_status(handle: String, user_access_token: Secret) -> Status {
         let token = AccessToken::new(user_access_token.expose_value().to_string());
 
         let client: HelixClient<reqwest::Client> = HelixClient::new();
@@ -63,7 +67,7 @@ impl Channel {
                 Ok(token) => token,
                 Err(_) => {
                     eprintln!("Could not validate token while updating channel status");
-                    return ChannelStatus::Unknown;
+                    return Status::Unknown;
                 }
             };
 
@@ -75,14 +79,14 @@ impl Channel {
             Ok(response) => response,
             Err(e) => {
                 eprintln!("Could not get channel status: {}", e);
-                return ChannelStatus::Unknown;
+                return Status::Unknown;
             }
         };
 
         return if response.data.is_empty() {
-            ChannelStatus::Offline
+            Status::Offline
         } else {
-            ChannelStatus::Online
+            Status::Online
         };
     }
 
@@ -110,7 +114,7 @@ impl Channel {
 
 pub fn load_channels(
     twitch_account: &TwitchAccount,
-) -> Result<(Vec<Channel>, mpsc::Receiver<(String, ChannelStatus)>)> {
+) -> Result<(Vec<Channel>, mpsc::Receiver<(String, Status)>)> {
     let data: String = read_to_string(CHANNELS_FILE)?;
 
     let channels: Vec<Channel> = serde_json::from_str(data.as_str())?;

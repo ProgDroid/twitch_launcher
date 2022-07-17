@@ -1,5 +1,5 @@
-use crate::app::AppResult;
-use crate::channel::ChannelStatus;
+use crate::app::Result;
+use crate::channel::Status;
 use crossterm::event::{self, Event as CrosstermEvent, KeyEvent, MouseEvent};
 use std::sync::mpsc;
 use std::thread;
@@ -19,7 +19,7 @@ pub struct EventHandler {
     sender: mpsc::Sender<Event>,
     receiver: mpsc::Receiver<Event>,
     #[allow(dead_code)]
-    handler: thread::JoinHandle<ChannelStatus>,
+    handler: thread::JoinHandle<Status>,
 }
 
 impl EventHandler {
@@ -58,7 +58,7 @@ impl EventHandler {
         }
     }
 
-    pub fn next(&self) -> AppResult<Event> {
+    pub fn next(&self) -> Result<Event> {
         Ok(self.receiver.recv()?)
     }
 }

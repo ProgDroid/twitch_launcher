@@ -1,5 +1,5 @@
 use crate::{
-    channel::{Channel, ChannelStatus},
+    channel::{Channel, Status},
     keybind::Keybind,
     panel::HomePanel,
     popup::Popup,
@@ -227,10 +227,10 @@ fn generate_favourites_widget<'a>(
         .iter()
         .map(|a| {
             let status_style = match a.status {
-                ChannelStatus::Awaiting => awaiting_status_style,
-                ChannelStatus::Online => online_style,
-                ChannelStatus::Offline => offline_style,
-                ChannelStatus::Unknown => unknown_status_style,
+                Status::Awaiting => awaiting_status_style,
+                Status::Online => online_style,
+                Status::Offline => offline_style,
+                Status::Unknown => unknown_status_style,
             };
 
             ListItem::new(Spans::from(vec![

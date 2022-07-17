@@ -1,5 +1,5 @@
 use crate::{
-    channel::{load_channels, Channel, ChannelStatus},
+    channel::{load_channels, Channel, Status},
     handler::{keybinds_exit, keybinds_home, keybinds_startup, keybinds_typing},
     keybind::Keybind,
     panel::HomePanel,
@@ -39,7 +39,7 @@ pub enum StateMachine {
         channel_highlight: usize,
         channels: Vec<Channel>,
         twitch_account: Option<TwitchAccount>,
-        channel_check: mpsc::Receiver<(String, ChannelStatus)>,
+        channel_check: mpsc::Receiver<(String, Status)>,
         popup: Option<Popup>,
         typing: bool,
         search_input: Vec<char>,

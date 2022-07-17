@@ -1,5 +1,5 @@
 use crate::{
-    app::{App, AppResult},
+    app::{self, App},
     handler::function_to_string,
 };
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
@@ -7,7 +7,7 @@ use std::fmt::{Display, Formatter, Result, Write};
 
 const SEPARATOR: &str = "+";
 
-pub type KeyBindFn = fn(KeyEvent, &mut App) -> AppResult<()>;
+pub type KeyBindFn = fn(KeyEvent, &mut App) -> app::Result<()>;
 
 pub struct Keybind {
     pub triggers: Vec<KeyEvent>,
