@@ -24,7 +24,18 @@ pub fn keybinds_home() -> Vec<Keybind> {
 
     binds.append(&mut panel_move_binds());
 
+    binds.append(&mut vec![Keybind {
+        triggers: vec![KeyEvent::new(KeyCode::Char('p'), KeyModifiers::NONE)],
+        action: test_popup,
+    }]);
+
     binds
+}
+
+#[allow(clippy::unnecessary_wraps)]
+fn test_popup(_: KeyEvent, app: &mut App) -> Result<()> {
+    app.events.push_back(Event::PopupStart);
+    Ok(())
 }
 
 #[must_use]
@@ -56,6 +67,17 @@ pub fn keybinds_typing() -> Vec<Keybind> {
             action: remove_from_search_input,
         },
     ]
+}
+
+#[must_use]
+pub fn keybinds_popup() -> Vec<Keybind> {
+    let mut binds = quit_binds();
+
+    binds.append(&mut highlight_move_binds());
+
+    binds.append(&mut select_binds());
+
+    binds
 }
 
 #[allow(clippy::wildcard_enum_match_arm)]

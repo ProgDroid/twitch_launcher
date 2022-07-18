@@ -10,7 +10,7 @@ const ACCOUNT_FILE: &str = "account.json";
 
 // TODO look into TwitchToken
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct TwitchAccount {
     pub username: String,
     pub user_id: String,
@@ -31,8 +31,7 @@ impl TwitchAccount {
         Ok(account)
     }
 
-    #[allow(clippy::needless_arbitrary_self_type)]
-    pub fn save(self: &Self) -> Result<()> {
+    pub fn save(&self) -> Result<()> {
         let file_contents: String = serde_json::to_string_pretty(&self)?;
 
         write(ACCOUNT_FILE, file_contents)?;

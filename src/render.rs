@@ -2,7 +2,7 @@ use crate::{
     channel::{Channel, Status},
     keybind::Keybind,
     panel::Home,
-    popup::Popup,
+    popup::{Choice, Popup, Popups},
     state::TabTitles,
     theme::{Elevation, Theme},
 };
@@ -111,35 +111,12 @@ pub fn home<B: Backend>(
     tab_titles: &TabTitles,
     channel_highlight: &usize,
     channels: &[Channel],
-    popup: &Option<Popup>,
     typing: &bool,
     search_input: &[char],
     focused_panel: &Home,
     keybinds: &[Keybind],
 ) {
     let area = frame.size();
-
-    #[allow(clippy::pattern_type_mismatch)]
-    if let Some(p) = popup {
-        let popup_area = generate_popup_layout(area);
-
-        frame.render_widget(
-            generate_background_widget(theme.background.as_tui_colour()),
-            popup_area,
-        );
-
-        let paragraph = Paragraph::new(p.message.as_str())
-            .block(
-                Block::default()
-                    .title((&p.title).as_str())
-                    .borders(Borders::ALL)
-                    .border_style(Style::default().fg(theme.secondary.as_tui_colour())),
-            )
-            .alignment(Alignment::Center);
-
-        frame.render_widget(paragraph, popup_area);
-        return;
-    }
 
     frame.render_widget(
         generate_background_widget(theme.background.as_tui_colour()),
@@ -206,7 +183,13 @@ pub fn home<B: Backend>(
             let search_chunks = generate_search_layout(search_chunks_with_margin[1]);
 
             frame.render_widget(
-                generate_channel_search(theme, search_input, typing, search_focused),
+                generate_search_box(
+                    theme,
+                    search_input,
+                    typing,
+                    search_focused,
+                    String::from("Search Channel"),
+                ),
                 search_chunks[1],
             );
         }
@@ -221,6 +204,109 @@ pub fn home<B: Backend>(
     frame.render_widget(generate_keys_widget(theme, keybinds), app_layout[3]);
 }
 
+#[allow(clippy::indexing_slicing)]
+pub fn popup<B: Backend>(theme: &Theme, frame: &mut Frame<'_, B>, popup: &Popup) {
+    let area = frame.size();
+
+    let popup_area = generate_popup_layout(area);
+
+    frame.render_widget(
+        generate_background_widget(theme.background.as_tui_colour()),
+        popup_area,
+    );
+
+    let popup_sections = match popup.variant {
+        Popups::Choice { .. } => generate_choice_popup_layout(popup_area),
+        Popups::Input { .. } => generate_input_popup_layout(popup_area),
+        Popups::TimedInfo { .. } => generate_timed_info_popup_layout(popup_area),
+    };
+
+    let paragraph = Paragraph::new(popup.message.as_str())
+        .block(
+            Block::default()
+                .title((&popup.title).as_str())
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(theme.secondary.as_tui_colour())),
+        )
+        .alignment(Alignment::Center);
+
+    frame.render_widget(paragraph, popup_sections[0]);
+
+    match popup.variant {
+        Popups::Choice {
+            ref options,
+            selected,
+        } => {
+            let mut list_state: ListState = ListState::default();
+            list_state.select(Some(selected));
+
+            frame.render_stateful_widget(
+                generate_choice_popup_list(theme, options),
+                popup_sections[1],
+                &mut list_state,
+            );
+        }
+        Popups::Input { ref input, typing } => frame.render_widget(
+            generate_search_box(theme, input, &typing, true, String::from("")),
+            popup_sections[1],
+        ),
+        Popups::TimedInfo { .. } => {}
+    }
+}
+
+fn generate_choice_popup_layout(area: Rect) -> Vec<Rect> {
+    Layout::default()
+        .direction(Direction::Vertical)
+        .constraints(
+            vec![
+                Constraint::Percentage(67), // message
+                Constraint::Percentage(33), // options
+            ]
+            .as_ref(),
+        )
+        .split(area)
+}
+
+fn generate_choice_popup_list<'a>(theme: &Theme, options: &[Choice]) -> List<'a> {
+    let text_style = Style::default().fg(theme.text.as_tui_colour());
+
+    let items: Vec<ListItem<'a>> = options
+        .iter()
+        .map(|entry| {
+            ListItem::new(Spans::from(Span::styled(
+                format!(" {}", entry.display_text.as_str()),
+                text_style,
+            )))
+        })
+        .collect();
+
+    List::new(items)
+        .block(Block::default().style(Style::default().fg(theme.text.as_tui_colour())))
+        .style(Style::default().bg(theme.elevation(Elevation::Level2).as_tui_colour()))
+        .highlight_style(Style::default().add_modifier(Modifier::BOLD))
+        .highlight_symbol(" >")
+}
+
+fn generate_input_popup_layout(area: Rect) -> Vec<Rect> {
+    Layout::default()
+        .direction(Direction::Vertical)
+        .constraints(
+            vec![
+                Constraint::Percentage(50), // message
+                Constraint::Percentage(50), // input box
+            ]
+            .as_ref(),
+        )
+        .split(area)
+}
+
+fn generate_timed_info_popup_layout(area: Rect) -> Vec<Rect> {
+    Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints(vec![Constraint::Percentage(100)].as_ref()) // no split
+        .split(area)
+}
+
 #[allow(clippy::integer_arithmetic, clippy::as_conversions)]
 fn generate_favourites_widget<'a>(
     theme: &Theme,
@@ -229,15 +315,15 @@ fn generate_favourites_widget<'a>(
     focused: bool,
 ) -> List<'a> {
     let online_style = Style::default().fg(theme.secondary.as_tui_colour());
-    let offline_style = Style::default().fg((&theme.text_dimmed).as_tui_colour());
+    let offline_style = Style::default().fg(theme.text_dimmed.as_tui_colour());
     let unknown_status_style = Style::default().fg(theme.text.as_tui_colour());
     let awaiting_status_style = Style::default().fg(theme.text.as_tui_colour());
     let text_style = Style::default().fg(theme.text.as_tui_colour());
 
     let items: Vec<ListItem<'a>> = channels
         .iter()
-        .map(|a| {
-            let status_style = match a.status {
+        .map(|entry| {
+            let status_style = match entry.status {
                 Status::Awaiting => awaiting_status_style,
                 Status::Online => online_style,
                 Status::Offline => offline_style,
@@ -248,17 +334,17 @@ fn generate_favourites_widget<'a>(
                 Span::styled(
                     format!(
                         " {:text_width$}",
-                        a.friendly_name.as_str(),
+                        entry.friendly_name.as_str(),
                         text_width = min(
-                            max(width as usize, a.status.message().len() - 5)
-                                - a.status.message().len()
+                            max(width as usize, entry.status.message().len() - 5)
+                                - entry.status.message().len()
                                 - 5,
                             25,
                         ),
                     ),
                     text_style,
                 ),
-                Span::styled(a.status.message(), status_style),
+                Span::styled(entry.status.message(), status_style),
             ]))
         })
         .collect();
@@ -268,6 +354,8 @@ fn generate_favourites_widget<'a>(
     if !focused {
         block_style = block_style.add_modifier(Modifier::DIM);
     }
+
+    // TODO allow theme to have highlight style? Or make constant
 
     List::new(items)
         .block(Block::default().style(block_style))
@@ -357,11 +445,12 @@ fn generate_popup_layout(r: Rect) -> Rect {
 }
 
 #[allow(clippy::trivially_copy_pass_by_ref)]
-fn generate_channel_search<'a>(
+fn generate_search_box<'a>(
     theme: &Theme,
     search_input: &[char],
     typing: &bool,
     focused: bool,
+    title: String,
 ) -> Paragraph<'a> {
     let input_string: String = search_input.iter().collect();
 
@@ -388,7 +477,7 @@ fn generate_channel_search<'a>(
         Block::default()
             .borders(Borders::ALL)
             .title(Span::styled(
-                "Search Channel",
+                title,
                 Style::default().fg(theme.text.as_tui_colour()),
             ))
             .border_style(Style::default().fg(theme.primary.as_tui_colour()))

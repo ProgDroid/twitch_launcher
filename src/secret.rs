@@ -5,7 +5,7 @@ pub trait Expose {
     fn expose_value(&self) -> &str;
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Clone)]
 pub struct Secret {
     secret_string: String,
 }

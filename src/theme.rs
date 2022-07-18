@@ -30,14 +30,13 @@ pub enum Elevation {
 impl CustomColour {
     #[must_use]
     #[allow(
-        clippy::needless_arbitrary_self_type,
         clippy::use_self,
         clippy::as_conversions,
         clippy::cast_possible_truncation,
         clippy::cast_sign_loss,
         clippy::float_arithmetic
     )]
-    pub fn blend(self: &Self, color: &CustomColour, factor: f32) -> Self {
+    pub fn blend(&self, color: &CustomColour, factor: f32) -> Self {
         Self {
             r: clamp(
                 f32::from(self.r).mul_add(1.0 - factor, f32::from(color.r) * factor),
@@ -151,8 +150,7 @@ impl CustomColour {
 
     #[inline]
     #[must_use]
-    #[allow(clippy::needless_arbitrary_self_type)]
-    pub const fn as_tui_colour(self: &Self) -> Color {
+    pub const fn as_tui_colour(&self) -> Color {
         Color::Rgb(self.r, self.g, self.b)
     }
 }

@@ -1,5 +1,5 @@
 use crate::{
-    state::{Event, State, StateMachine},
+    state::{Cache, Event, State, StateMachine, Transition},
     theme::Theme,
     twitch_account::TwitchAccount,
 };
@@ -15,6 +15,8 @@ pub struct App {
     pub theme: Theme,
     pub tick_rate: u64,
     pub state: StateMachine,
+    pub state_cache: Cache,
+    pub state_stack: Vec<usize>,
     pub events: VecDeque<Event>,
 }
 
@@ -36,8 +38,9 @@ impl App {
                 timer: 0,
                 startup_duration: ticks_from_seconds(tick_rate, STARTUP_DURATION),
                 twitch_account,
-                popup: None,
             },
+            state_cache: Cache::default(),
+            state_stack: Vec::new(),
             events: VecDeque::new(),
         }
     }
@@ -45,9 +48,24 @@ impl App {
     pub async fn tick(&mut self) {
         self.running = self.state.tick(&mut self.events).await;
 
-        if let Some(e) = self.events.pop_front() {
-            if let Some(s) = self.state.transition(e) {
-                self.state = s;
+        if let Some(event) = self.events.pop_front() {
+            if let Some(transition) = self.state.transition(event) {
+                let cache_index = self.state_cache.add(&mut self.state);
+
+                match transition {
+                    Transition::Push(state) => {
+                        self.state_stack.push(cache_index);
+                        self.state = state;
+                    }
+                    Transition::Pop => {
+                        if let Some(index) = self.state_stack.pop() {
+                            if let Some(state) = self.state_cache.get(index) {
+                                self.state = state;
+                            }
+                        }
+                    }
+                    Transition::To(state) => self.state = state,
+                }
             }
         }
     }
