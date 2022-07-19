@@ -1,9 +1,9 @@
 use crate::{
     app::{App, Result},
-    channel::{Channel, Status},
     keybind::{KeyBindFn, Keybind},
     panel::{Home, Panel},
-    state::{Event, State, StateMachine},
+    popup::{self, Output, Popups},
+    state::{chat_choice, Event, State, StateMachine},
 };
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
@@ -24,18 +24,7 @@ pub fn keybinds_home() -> Vec<Keybind> {
 
     binds.append(&mut panel_move_binds());
 
-    binds.append(&mut vec![Keybind {
-        triggers: vec![KeyEvent::new(KeyCode::Char('p'), KeyModifiers::NONE)],
-        action: test_popup,
-    }]);
-
     binds
-}
-
-#[allow(clippy::unnecessary_wraps)]
-fn test_popup(_: KeyEvent, app: &mut App) -> Result<()> {
-    app.events.push_back(Event::PopupStart);
-    Ok(())
 }
 
 #[must_use]
@@ -60,7 +49,7 @@ pub fn keybinds_typing() -> Vec<Keybind> {
         },
         Keybind {
             triggers: vec![KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE)],
-            action: submit_search,
+            action: submit,
         },
         Keybind {
             triggers: vec![KeyEvent::new(KeyCode::Backspace, KeyModifiers::NONE)],
@@ -193,6 +182,15 @@ fn highlight_down(_: KeyEvent, app: &mut App) -> Result<()> {
                 *channel_highlight = index_add(*channel_highlight, channels.len());
             }
         }
+        StateMachine::Popup { ref mut popup, .. } => {
+            if let Popups::Choice {
+                ref mut selected,
+                ref options,
+            } = popup.variant
+            {
+                *selected = index_add(*selected, options.len());
+            }
+        }
         _ => {}
     }
 
@@ -217,6 +215,15 @@ fn highlight_up(_: KeyEvent, app: &mut App) -> Result<()> {
                 *channel_highlight = index_subtract(*channel_highlight, channels.len());
             }
         }
+        StateMachine::Popup { ref mut popup, .. } => {
+            if let Popups::Choice {
+                ref mut selected,
+                ref options,
+            } = popup.variant
+            {
+                *selected = index_subtract(*selected, options.len());
+            }
+        }
         _ => {}
     }
 
@@ -233,21 +240,28 @@ fn highlight_up(_: KeyEvent, app: &mut App) -> Result<()> {
 fn select(_: KeyEvent, app: &mut App) -> Result<()> {
     match &mut app.state {
         StateMachine::Home {
-            channels,
-            channel_highlight,
             focused_panel,
             ref mut typing,
+            ref mut event_callback,
             ..
         } => match focused_panel {
             Home::Favourites => {
-                app.events.push_back(Event::ChannelSelected(
-                    channels[*channel_highlight].clone(),
-                    true,
-                ));
+                app.events
+                    .push_back(Event::PopupStart(popup::get_chat_choice()));
+
+                *event_callback = Some(chat_choice);
             }
             Home::Search => {
                 *typing = true;
             }
+        },
+        StateMachine::Popup { popup } => match popup.variant {
+            Popups::Choice { selected, .. } => {
+                app.events
+                    .push_back(Event::PopupEnded(Output::Index(selected)));
+            }
+            Popups::Input { ref mut typing, .. } => *typing = true,
+            Popups::TimedInfo { .. } => app.events.push_back(Event::PopupEnded(Output::Empty)),
         },
         _ => {}
     }
@@ -314,6 +328,11 @@ fn stop_typing(_: KeyEvent, app: &mut App) -> Result<()> {
         StateMachine::Home { typing, .. } => {
             *typing = false;
         }
+        StateMachine::Popup { popup, .. } => {
+            if let Popups::Input { ref mut typing, .. } = popup.variant {
+                *typing = false;
+            }
+        }
         _ => {}
     }
 
@@ -327,12 +346,12 @@ fn stop_typing(_: KeyEvent, app: &mut App) -> Result<()> {
     clippy::wildcard_enum_match_arm,
     clippy::indexing_slicing
 )]
-fn submit_search(_: KeyEvent, app: &mut App) -> Result<()> {
+fn submit(_: KeyEvent, app: &mut App) -> Result<()> {
     match &mut app.state {
         StateMachine::Home {
             typing,
             search_input,
-            channels,
+            ref mut event_callback,
             ..
         } => {
             if search_input.is_empty() {
@@ -341,23 +360,15 @@ fn submit_search(_: KeyEvent, app: &mut App) -> Result<()> {
 
             *typing = false;
 
-            let handle: String = search_input.iter().collect();
+            app.events
+                .push_back(Event::PopupStart(popup::get_chat_choice()));
 
-            // TODO allow setting to determine whether to launch on browser or locally
-            if let Some(index) = channels.iter().position(|channel| channel.handle == handle) {
-                app.events.push_back(Event::ChannelSelected(
-                    channels[index].clone(),
-                    true, /* TODO chat */
-                ));
-            } else {
-                let channel = Channel {
-                    friendly_name: String::new(),
-                    handle,
-                    status: Status::Unknown,
-                };
-
+            *event_callback = Some(chat_choice);
+        }
+        StateMachine::Popup { popup } => {
+            if let Popups::Input { ref input, .. } = popup.variant {
                 app.events
-                    .push_back(Event::ChannelSelected(channel, true /* TODO chat */));
+                    .push_back(Event::PopupEnded(Output::String(input.iter().collect())));
             }
         }
         _ => {}
@@ -498,7 +509,7 @@ pub fn function_to_string(function: KeyBindFn) -> String {
         f if f == select as usize => String::from("Select Current"),
         f if f == cycle_panels as usize => String::from("Cycle Panels"),
         f if f == stop_typing as usize => String::from("Cancel"),
-        f if f == submit_search as usize => String::from("Submit"),
+        f if f == submit as usize => String::from("Submit"),
         f if f == remove_from_search_input as usize => String::from("Delete"),
         f if f == top_bottom_highlights as usize => String::from("Go to List Top/Bottom"),
         _ => String::from("Unknown"),
@@ -596,6 +607,15 @@ fn highlight_bottom(_: KeyEvent, app: &mut App) -> Result<()> {
                 *channel_highlight = channels.len() - 1;
             }
         }
+        StateMachine::Popup { ref mut popup, .. } => {
+            if let Popups::Choice {
+                ref mut selected,
+                ref options,
+            } = popup.variant
+            {
+                *selected = options.len() - 1;
+            }
+        }
         _ => {}
     }
 
@@ -617,6 +637,14 @@ fn highlight_top(_: KeyEvent, app: &mut App) -> Result<()> {
         } => {
             if *focused_panel == Home::Favourites {
                 *channel_highlight = 0;
+            }
+        }
+        StateMachine::Popup { ref mut popup, .. } => {
+            if let Popups::Choice {
+                ref mut selected, ..
+            } = popup.variant
+            {
+                *selected = 0;
             }
         }
         _ => {}

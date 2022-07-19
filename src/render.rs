@@ -13,7 +13,7 @@ use tui::{
     style::{Color, Modifier, Style},
     terminal::Frame,
     text::{Span, Spans},
-    widgets::{Block, Borders, List, ListItem, ListState, Paragraph, Tabs, Wrap},
+    widgets::{Block, Borders, Gauge, List, ListItem, ListState, Paragraph, Tabs, Wrap},
 };
 
 const HORIZONTAL_MARGIN: u16 = 2;
@@ -189,6 +189,7 @@ pub fn home<B: Backend>(
                     typing,
                     search_focused,
                     String::from("Search Channel"),
+                    theme.elevation(Elevation::Level2).as_tui_colour(),
                 ),
                 search_chunks[1],
             );
@@ -205,20 +206,25 @@ pub fn home<B: Backend>(
 }
 
 #[allow(clippy::indexing_slicing)]
-pub fn popup<B: Backend>(theme: &Theme, frame: &mut Frame<'_, B>, popup: &Popup) {
+pub fn popup<B: Backend>(
+    theme: &Theme,
+    frame: &mut Frame<'_, B>,
+    popup: &Popup,
+    keybinds: &[Keybind],
+) {
     let area = frame.size();
 
     let popup_area = generate_popup_layout(area);
 
     frame.render_widget(
         generate_background_widget(theme.background.as_tui_colour()),
-        popup_area,
+        popup_area[1],
     );
 
     let popup_sections = match popup.variant {
-        Popups::Choice { .. } => generate_choice_popup_layout(popup_area),
-        Popups::Input { .. } => generate_input_popup_layout(popup_area),
-        Popups::TimedInfo { .. } => generate_timed_info_popup_layout(popup_area),
+        Popups::Choice { .. } => generate_choice_popup_layout(popup_area[1]),
+        Popups::Input { .. } => generate_input_popup_layout(popup_area[1]),
+        Popups::TimedInfo { .. } => generate_timed_info_popup_layout(popup_area[1]),
     };
 
     let paragraph = Paragraph::new(popup.message.as_str())
@@ -247,11 +253,23 @@ pub fn popup<B: Backend>(theme: &Theme, frame: &mut Frame<'_, B>, popup: &Popup)
             );
         }
         Popups::Input { ref input, typing } => frame.render_widget(
-            generate_search_box(theme, input, &typing, true, String::from("")),
+            generate_search_box(
+                theme,
+                input,
+                &typing,
+                true,
+                String::from(""),
+                theme.background.as_tui_colour(),
+            ),
             popup_sections[1],
         ),
-        Popups::TimedInfo { .. } => {}
+        Popups::TimedInfo { duration, timer } => frame.render_widget(
+            generate_timed_popup_progress_bar(theme, &duration, &timer),
+            popup_sections[1],
+        ),
     }
+
+    frame.render_widget(generate_keys_widget(theme, keybinds), popup_area[3]);
 }
 
 fn generate_choice_popup_layout(area: Rect) -> Vec<Rect> {
@@ -287,6 +305,20 @@ fn generate_choice_popup_list<'a>(theme: &Theme, options: &[Choice]) -> List<'a>
         .highlight_symbol(" >")
 }
 
+#[allow(
+    clippy::trivially_copy_pass_by_ref,
+    clippy::as_conversions,
+    clippy::cast_possible_truncation,
+    clippy::integer_arithmetic
+)]
+fn generate_timed_popup_progress_bar<'a>(theme: &Theme, duration: &u64, timer: &u64) -> Gauge<'a> {
+    Gauge::default()
+        .block(Block::default())
+        .gauge_style(Style::default().fg(theme.text_dimmed.as_tui_colour()))
+        .label("")
+        .percent(((duration - timer) * 100 / duration) as u16) // don't care for loss of precision here
+}
+
 fn generate_input_popup_layout(area: Rect) -> Vec<Rect> {
     Layout::default()
         .direction(Direction::Vertical)
@@ -302,8 +334,14 @@ fn generate_input_popup_layout(area: Rect) -> Vec<Rect> {
 
 fn generate_timed_info_popup_layout(area: Rect) -> Vec<Rect> {
     Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints(vec![Constraint::Percentage(100)].as_ref()) // no split
+        .direction(Direction::Vertical)
+        .constraints(
+            vec![
+                Constraint::Percentage(95), // message
+                Constraint::Percentage(5),  // progress bar
+            ]
+            .as_ref(),
+        )
         .split(area)
 }
 
@@ -418,20 +456,8 @@ fn generate_title<'a>(
     clippy::integer_division,
     clippy::indexing_slicing
 )]
-fn generate_popup_layout(r: Rect) -> Rect {
+fn generate_popup_layout(r: Rect) -> Vec<Rect> {
     let layout = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints(
-            [
-                Constraint::Percentage((100 - POPUP_PERCENTAGE_Y) / 2),
-                Constraint::Percentage(POPUP_PERCENTAGE_Y),
-                Constraint::Percentage((100 - POPUP_PERCENTAGE_Y) / 2),
-            ]
-            .as_ref(),
-        )
-        .split(r);
-
-    Layout::default()
         .direction(Direction::Horizontal)
         .constraints(
             [
@@ -441,7 +467,20 @@ fn generate_popup_layout(r: Rect) -> Rect {
             ]
             .as_ref(),
         )
-        .split(layout[1])[1]
+        .split(r);
+
+    Layout::default()
+        .direction(Direction::Vertical)
+        .constraints(
+            [
+                Constraint::Percentage((87 - POPUP_PERCENTAGE_Y) / 2),
+                Constraint::Percentage(POPUP_PERCENTAGE_Y),
+                Constraint::Percentage((87 - POPUP_PERCENTAGE_Y) / 2),
+                Constraint::Min(3), // Footer
+            ]
+            .as_ref(),
+        )
+        .split(layout[1])
 }
 
 #[allow(clippy::trivially_copy_pass_by_ref)]
@@ -451,10 +490,11 @@ fn generate_search_box<'a>(
     typing: &bool,
     focused: bool,
     title: String,
+    background: Color,
 ) -> Paragraph<'a> {
     let input_string: String = search_input.iter().collect();
 
-    let mut block_style = Style::default().bg(theme.elevation(Elevation::Level2).as_tui_colour());
+    let mut block_style = Style::default().bg(background);
 
     if !focused {
         block_style = block_style.add_modifier(Modifier::DIM);

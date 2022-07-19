@@ -1,4 +1,5 @@
 use crate::{
+    popup::Output,
     state::{Cache, Event, State, StateMachine, Transition},
     theme::Theme,
     twitch_account::TwitchAccount,
@@ -38,6 +39,8 @@ impl App {
                 timer: 0,
                 startup_duration: ticks_from_seconds(tick_rate, STARTUP_DURATION),
                 twitch_account,
+                event_output: Output::Empty,
+                event_callback: None,
             },
             state_cache: Cache::default(),
             state_stack: Vec::new(),
@@ -49,6 +52,12 @@ impl App {
         self.running = self.state.tick(&mut self.events).await;
 
         if let Some(event) = self.events.pop_front() {
+            let event_output = if let Event::PopupEnded(ref output) = event {
+                (*output).clone()
+            } else {
+                Output::Empty
+            };
+
             if let Some(transition) = self.state.transition(event) {
                 let cache_index = self.state_cache.add(&mut self.state);
 
@@ -67,6 +76,8 @@ impl App {
                     Transition::To(state) => self.state = state,
                 }
             }
+
+            self.state.set_event_output(event_output);
         }
     }
 

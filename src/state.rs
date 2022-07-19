@@ -3,7 +3,7 @@ use crate::{
     handler::{keybinds_exit, keybinds_home, keybinds_popup, keybinds_startup, keybinds_typing},
     keybind::Keybind,
     panel::Home,
-    popup::{Popup, Popups},
+    popup::{BoolChoice, Output, Popup, Popups},
     render,
     secret::{Expose, Secret},
     theme::Theme,
@@ -25,12 +25,25 @@ pub enum Transition {
     To(StateMachine),
 }
 
+pub type EventCallback = fn(&Output) -> Event;
+
+#[must_use]
+#[allow(clippy::pattern_type_mismatch)]
+pub fn chat_choice(output: &Output) -> Event {
+    if let Output::Index(choice) = output {
+        return Event::ChatChoice(BoolChoice::from(*choice));
+    }
+
+    Event::ChatChoice(BoolChoice::False)
+}
+
 pub enum Event {
     AccountLoaded,
     Exited,
     ChannelSelected(Channel, bool),
-    PopupStart,
-    PopupEnded,
+    PopupStart(Popup),
+    PopupEnded(Output),
+    ChatChoice(BoolChoice),
 }
 
 #[derive(Default)]
@@ -73,6 +86,8 @@ pub enum StateMachine {
         timer: u64,
         startup_duration: u64,
         twitch_account: Option<TwitchAccount>,
+        event_output: Output,
+        event_callback: Option<EventCallback>,
     },
     Home {
         tab: usize,
@@ -84,11 +99,11 @@ pub enum StateMachine {
         typing: bool,
         search_input: Vec<char>,
         focused_panel: Home,
+        event_output: Output,
+        event_callback: Option<EventCallback>,
     },
     Popup {
         popup: Popup,
-        option_highlight: usize,
-        typing: bool,
     },
     // Follows(StateFollows),
     Exit,
@@ -105,6 +120,10 @@ pub trait State {
     fn transition(&self, event: Event) -> Option<Transition>;
 
     fn clone(&mut self) -> StateMachine;
+
+    fn get_event_output(&self) -> &Output;
+
+    fn set_event_output(&mut self, output: Output);
 }
 
 #[async_trait]
@@ -119,12 +138,14 @@ impl State for StateMachine {
                     keybinds_home()
                 }
             }
-            Self::Popup { typing, .. } => {
-                if typing {
-                    keybinds_typing()
-                } else {
-                    keybinds_popup()
+            Self::Popup { ref popup, .. } => {
+                if let Popups::Input { typing, .. } = popup.variant {
+                    if typing {
+                        return keybinds_typing();
+                    }
                 }
+
+                keybinds_popup()
             }
             Self::Exit => keybinds_exit(),
         }
@@ -133,7 +154,8 @@ impl State for StateMachine {
     #[allow(
         clippy::pattern_type_mismatch,
         clippy::integer_arithmetic,
-        clippy::indexing_slicing
+        clippy::indexing_slicing,
+        clippy::too_many_lines
     )]
     async fn tick(&mut self, events: &mut VecDeque<Event>) -> bool {
         match self {
@@ -141,6 +163,8 @@ impl State for StateMachine {
                 account_loaded,
                 ref mut timer,
                 startup_duration,
+                ref mut event_output,
+                ref mut event_callback,
                 ..
             } => {
                 *timer += 1;
@@ -153,12 +177,26 @@ impl State for StateMachine {
                     });
                 }
 
+                if let Some(callback) = event_callback {
+                    match &event_output {
+                        Output::Index(_) | Output::String(_) => {
+                            events.push_back((callback)(event_output));
+                        }
+                        Output::Empty => {}
+                    };
+
+                    *event_output = Output::Empty;
+                    *event_callback = None;
+                }
+
                 true
             }
             Self::Home {
                 twitch_account,
                 channels,
                 ref mut channel_check,
+                ref mut event_output,
+                ref mut event_callback,
                 ..
             } => {
                 if let Some(check) = channel_check {
@@ -186,18 +224,28 @@ impl State for StateMachine {
                         }
                     }
 
-                    if channels_awaiting.is_empty() {
-                        return true;
+                    if !channels_awaiting.is_empty() {
+                        #[allow(clippy::expect_used)]
+                        if let Ok((_, check)) = load_channels(
+                            twitch_account
+                                .as_ref()
+                                .expect("Made it past startup without loading Twitch account"),
+                            &channels_awaiting,
+                        ) {
+                            *channel_check = Some(check);
+                        }
                     }
+                }
 
-                    #[allow(clippy::expect_used)]
-                    if let Ok((_, check)) = load_channels(
-                        twitch_account
-                            .as_ref()
-                            .expect("Made it past startup without loading Twitch account"),
-                        &channels_awaiting,
-                    ) {
-                        *channel_check = Some(check);
+                if let Some(callback) = event_callback {
+                    match event_output {
+                        Output::Index(_) | Output::String(_) => {
+                            events.push_back((callback)(event_output));
+
+                            *event_output = Output::Empty;
+                            *event_callback = None;
+                        }
+                        Output::Empty => {}
                     }
                 }
 
@@ -213,7 +261,7 @@ impl State for StateMachine {
                         *timer += 1;
 
                         if *timer > (duration) {
-                            events.push_back(Event::PopupEnded);
+                            events.push_back(Event::PopupEnded(Output::Empty));
                         }
                     }
                     Popups::Input { .. } | Popups::Choice { .. } => {}
@@ -259,12 +307,16 @@ impl State for StateMachine {
                 focused_panel,
                 &self.keybinds(),
             ),
-            Self::Popup { ref popup, .. } => render::popup(theme, frame, popup),
+            Self::Popup { ref popup, .. } => render::popup(theme, frame, popup, &self.keybinds()),
             Self::Exit { .. } => {}
         }
     }
 
-    #[allow(clippy::unwrap_in_result, clippy::pattern_type_mismatch)]
+    #[allow(
+        clippy::unwrap_in_result,
+        clippy::pattern_type_mismatch,
+        clippy::too_many_lines
+    )]
     fn transition(&self, event: Event) -> Option<Transition> {
         match (self, event) {
             (StateMachine::Startup { twitch_account, .. }, Event::AccountLoaded) => {
@@ -300,6 +352,8 @@ impl State for StateMachine {
                     typing: false,
                     search_input: Vec::new(),
                     focused_panel: Home::default(),
+                    event_output: Output::Empty,
+                    event_callback: None,
                 }))
             }
             (Self::Home { .. }, Event::ChannelSelected(channel, chat)) => {
@@ -319,19 +373,57 @@ impl State for StateMachine {
             (Self::Home { .. }, Event::Exited) | (Self::Startup { .. }, Event::Exited) => {
                 Some(Transition::To(Self::Exit))
             }
-            (Self::Home { .. }, Event::PopupStart) => Some(Transition::Push(Self::Popup {
-                popup: Popup {
-                    title: String::from("Test"),
-                    message: String::from("Testerino"),
-                    variant: Popups::TimedInfo {
-                        duration: 10,
-                        timer: 0,
-                    },
+            (Self::Home { .. }, Event::PopupStart(popup)) => {
+                Some(Transition::Push(Self::Popup { popup }))
+            }
+            (Self::Popup { .. }, Event::Exited) => Some(Transition::To(Self::Exit)),
+            (Self::Popup { .. }, Event::PopupEnded(_)) => Some(Transition::Pop),
+            (
+                Self::Home {
+                    channels,
+                    channel_highlight,
+                    search_input,
+                    focused_panel,
+                    ..
                 },
-                option_highlight: 0,
-                typing: false,
-            })),
-            (Self::Popup { .. }, Event::PopupEnded) => Some(Transition::Pop),
+                Event::ChatChoice(choice),
+            ) => {
+                let channel: Channel = match *focused_panel {
+                    Home::Favourites => {
+                        if let Some(channel) = channels.get(*channel_highlight) {
+                            (*channel).clone()
+                        } else {
+                            return None;
+                        }
+                    }
+                    Home::Search => {
+                        if search_input.is_empty() {
+                            return None;
+                        }
+
+                        let handle: String = search_input.iter().collect();
+
+                        // TODO allow setting to determine whether to launch on browser or locally
+                        Channel {
+                            friendly_name: String::new(),
+                            handle,
+                            status: Status::Unknown,
+                        }
+                    }
+                };
+
+                if let Err(e) = channel.launch() {
+                    eprintln!("Error opening stream: {}", e);
+                }
+
+                if choice.is_true() {
+                    if let Err(e) = channel.launch_chat() {
+                        eprintln!("Error opening chat: {}", e);
+                    }
+                }
+
+                None
+            }
             _ => None,
         }
     }
@@ -344,11 +436,16 @@ impl State for StateMachine {
                 timer,
                 startup_duration,
                 twitch_account,
+                event_output,
+                event_callback,
+                ..
             } => Self::Startup {
                 account_loaded: *account_loaded,
                 timer: *timer,
                 startup_duration: *startup_duration,
                 twitch_account: (*twitch_account).clone(),
+                event_output: (*event_output).clone(),
+                event_callback: *event_callback,
             },
             Self::Home {
                 tab,
@@ -360,6 +457,9 @@ impl State for StateMachine {
                 typing,
                 search_input,
                 focused_panel,
+                event_output,
+                event_callback,
+                ..
             } => {
                 if let Some(check) = channel_check {
                     check.close();
@@ -375,18 +475,42 @@ impl State for StateMachine {
                     typing: *typing,
                     search_input: (*search_input).clone(),
                     focused_panel: *focused_panel,
+                    event_output: (*event_output).clone(),
+                    event_callback: *event_callback,
                 }
             }
-            Self::Popup {
-                popup,
-                option_highlight,
-                typing,
-            } => Self::Popup {
+            Self::Popup { popup } => Self::Popup {
                 popup: (*popup).clone(),
-                option_highlight: *option_highlight,
-                typing: *typing,
             },
             Self::Exit => Self::Exit,
+        }
+    }
+
+    #[allow(clippy::wildcard_enum_match_arm)]
+    fn get_event_output(&self) -> &Output {
+        match *self {
+            Self::Startup {
+                ref event_output, ..
+            }
+            | Self::Home {
+                ref event_output, ..
+            } => event_output,
+            _ => &Output::Empty,
+        }
+    }
+
+    #[allow(clippy::wildcard_enum_match_arm)]
+    fn set_event_output(&mut self, output: Output) {
+        match *self {
+            Self::Startup {
+                ref mut event_output,
+                ..
+            }
+            | Self::Home {
+                ref mut event_output,
+                ..
+            } => *event_output = output,
+            _ => {}
         }
     }
 }
