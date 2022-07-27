@@ -1,0 +1,21 @@
+[package]
+name = "launcher"
+version = "0.1.0"
+authors = ["ProgDroid"]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+crossterm = "0.23"
+tui = "0.18.0"
+
+app_event = { path = "../app_event" }
+input = { path = "../input" }
+state = { path = "../state" }
+twitch = { path = "../twitch" }
+ui = { path = "../ui" }
+
+[dependencies.tokio]
+version = "1.17"
+features = ["full"]

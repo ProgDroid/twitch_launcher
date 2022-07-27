@@ -4,7 +4,7 @@ use tui::style::{Color, Modifier};
 // TODO write unit tests
 // TODO this is a strong argument for a different storage format (e.g. TOML/YAML)
 
-#[derive(Debug)]
+#[derive(Clone)]
 pub struct CustomColour {
     pub r: u8,
     pub g: u8,
@@ -60,7 +60,6 @@ impl CustomColour {
     }
 
     #[must_use]
-    #[allow(clippy::wildcard_enum_match_arm)]
     pub const fn from(colour: Color) -> Self {
         match colour {
             Color::Black => Self {
@@ -171,7 +170,7 @@ const BLACK: CustomColour = CustomColour { r: 0, g: 0, b: 0 };
 
 const ELEVATION: [f32; 10] = [0.0, 0.05, 0.07, 0.08, 0.09, 0.11, 0.12, 0.14, 0.15, 0.16];
 
-#[derive(Debug)]
+#[derive(Clone)]
 pub struct Cursor {
     pub cursor: String,
     pub modifier: Modifier,
@@ -186,7 +185,7 @@ impl Default for Cursor {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone)]
 pub struct Theme {
     pub background: CustomColour,
     pub primary: CustomColour,

@@ -1,0 +1,93 @@
+use crate::input_mapping::app_inputs;
+use app_event::event::Event;
+use crossterm::event::KeyEvent;
+use input::handler::Handler;
+use state::state_machine::StateMachine;
+use tokio::sync::mpsc::{self, UnboundedReceiver};
+use tui::{backend::Backend, terminal::Frame};
+use twitch::account::Account;
+use ui::theme::Theme;
+
+pub struct App {
+    running: bool,
+    theme: Theme,
+    state: StateMachine,
+    events: UnboundedReceiver<Event>,
+    input_handler: Handler<Event>,
+    account: Option<Account>,
+}
+
+impl App {
+    pub async fn new() -> Self {
+        let account: Option<Account> = match Account::load().await {
+            Ok(account) => Some(account),
+            Err(e) => {
+                eprintln!("Could not load account: {}", e);
+                None
+            }
+        };
+
+        let (sender, receiver) = mpsc::unbounded_channel();
+
+        // TODO load inputs
+
+        Self {
+            running: true,
+            theme: Theme::default(),
+            state: StateMachine::new(sender.clone()),
+            events: receiver,
+            input_handler: Handler::new(sender, app_inputs()),
+            account,
+        }
+    }
+
+    pub async fn tick(&mut self) {
+        self.state.tick(&self.account).await;
+
+        if let Ok(event) = self.events.try_recv() {
+            match event {
+                Event::Exit => self.running = false,
+                Event::SetTheme(theme) => self.theme = theme,
+            }
+        }
+    }
+
+    pub fn render<B: Backend>(&mut self, frame: &mut Frame<'_, B>) {
+        self.state.render(&self.theme, frame);
+    }
+
+    pub fn handle_input(&mut self, key_event: KeyEvent) {
+        self.input_handler.handle(key_event);
+        self.state.handle(key_event);
+    }
+
+    #[must_use]
+    pub const fn is_running(&self) -> bool {
+        self.running
+    }
+
+    // pub fn stop(&mut self) {
+    //     self.running = false;
+    // }
+
+    // pub fn theme(&self) -> &Theme {
+    //     &self.theme
+    // }
+
+    // pub fn set_theme(&mut self, theme: Theme) {
+    //     self.theme = theme;
+    // }
+
+    // // are all of these needed?
+    // pub fn state(&self) -> &StateMachine {
+    //     &self.state
+    // }
+
+    // pub fn state_mut(&mut self) -> &mut StateMachine {
+    //     &mut self.state
+    // }
+
+    // pub fn events_mut(&mut self) -> &mut UnboundedReceiver<Event> {
+    //     &mut self.events
+    // }
+}

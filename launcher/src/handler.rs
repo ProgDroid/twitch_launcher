@@ -7,6 +7,8 @@ use crate::{
 };
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
+// TODO move this wherever appropriate, use events
+
 #[must_use]
 pub fn keybinds_startup() -> Vec<Keybind> {
     quit_binds()
@@ -69,7 +71,6 @@ pub fn keybinds_popup() -> Vec<Keybind> {
     binds
 }
 
-#[allow(clippy::wildcard_enum_match_arm)]
 pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> Result<()> {
     if let Some(keybind) = app
         .state
@@ -116,11 +117,7 @@ fn cycle_tabs(key_event: KeyEvent, app: &mut App) -> Result<()> {
     Ok(())
 }
 
-#[allow(
-    clippy::unnecessary_wraps,
-    clippy::single_match,
-    clippy::wildcard_enum_match_arm
-)]
+#[allow(clippy::unnecessary_wraps, clippy::single_match)]
 fn tab_right(_: KeyEvent, app: &mut App) -> Result<()> {
     match app.state {
         StateMachine::Home {
@@ -134,11 +131,7 @@ fn tab_right(_: KeyEvent, app: &mut App) -> Result<()> {
     Ok(())
 }
 
-#[allow(
-    clippy::unnecessary_wraps,
-    clippy::single_match,
-    clippy::wildcard_enum_match_arm
-)]
+#[allow(clippy::unnecessary_wraps, clippy::single_match)]
 fn tab_left(_: KeyEvent, app: &mut App) -> Result<()> {
     match app.state {
         StateMachine::Home {
@@ -164,12 +157,7 @@ fn cycle_highlights(key_event: KeyEvent, app: &mut App) -> Result<()> {
     Ok(())
 }
 
-#[allow(
-    clippy::pattern_type_mismatch,
-    clippy::single_match,
-    clippy::unnecessary_wraps,
-    clippy::wildcard_enum_match_arm
-)]
+#[allow(clippy::single_match, clippy::unnecessary_wraps)]
 fn highlight_down(_: KeyEvent, app: &mut App) -> Result<()> {
     match &mut app.state {
         StateMachine::Home {
@@ -197,12 +185,7 @@ fn highlight_down(_: KeyEvent, app: &mut App) -> Result<()> {
     Ok(())
 }
 
-#[allow(
-    clippy::pattern_type_mismatch,
-    clippy::single_match,
-    clippy::unnecessary_wraps,
-    clippy::wildcard_enum_match_arm
-)]
+#[allow(clippy::single_match, clippy::unnecessary_wraps)]
 fn highlight_up(_: KeyEvent, app: &mut App) -> Result<()> {
     match &mut app.state {
         StateMachine::Home {
@@ -231,10 +214,8 @@ fn highlight_up(_: KeyEvent, app: &mut App) -> Result<()> {
 }
 
 #[allow(
-    clippy::pattern_type_mismatch,
     clippy::single_match,
     clippy::unnecessary_wraps,
-    clippy::wildcard_enum_match_arm,
     clippy::indexing_slicing
 )]
 fn select(_: KeyEvent, app: &mut App) -> Result<()> {
@@ -281,12 +262,7 @@ fn cycle_panels(key_event: KeyEvent, app: &mut App) -> Result<()> {
     Ok(())
 }
 
-#[allow(
-    clippy::pattern_type_mismatch,
-    clippy::single_match,
-    clippy::unnecessary_wraps,
-    clippy::wildcard_enum_match_arm
-)]
+#[allow(clippy::single_match, clippy::unnecessary_wraps)]
 fn panel_left(_: KeyEvent, app: &mut App) -> Result<()> {
     match &mut app.state {
         StateMachine::Home { focused_panel, .. } => {
@@ -300,12 +276,7 @@ fn panel_left(_: KeyEvent, app: &mut App) -> Result<()> {
 
 // TODO should there be a state function to handle these changes? or events??
 
-#[allow(
-    clippy::pattern_type_mismatch,
-    clippy::single_match,
-    clippy::unnecessary_wraps,
-    clippy::wildcard_enum_match_arm
-)]
+#[allow(clippy::single_match, clippy::unnecessary_wraps)]
 fn panel_right(_: KeyEvent, app: &mut App) -> Result<()> {
     match &mut app.state {
         StateMachine::Home { focused_panel, .. } => {
@@ -317,12 +288,7 @@ fn panel_right(_: KeyEvent, app: &mut App) -> Result<()> {
     Ok(())
 }
 
-#[allow(
-    clippy::pattern_type_mismatch,
-    clippy::single_match,
-    clippy::unnecessary_wraps,
-    clippy::wildcard_enum_match_arm
-)]
+#[allow(clippy::single_match, clippy::unnecessary_wraps)]
 fn stop_typing(_: KeyEvent, app: &mut App) -> Result<()> {
     match &mut app.state {
         StateMachine::Home { typing, .. } => {
@@ -340,10 +306,8 @@ fn stop_typing(_: KeyEvent, app: &mut App) -> Result<()> {
 }
 
 #[allow(
-    clippy::pattern_type_mismatch,
     clippy::single_match,
     clippy::unnecessary_wraps,
-    clippy::wildcard_enum_match_arm,
     clippy::indexing_slicing
 )]
 fn submit(_: KeyEvent, app: &mut App) -> Result<()> {
@@ -379,12 +343,7 @@ fn submit(_: KeyEvent, app: &mut App) -> Result<()> {
 
 // TODO add CTRL backspace?
 
-#[allow(
-    clippy::pattern_type_mismatch,
-    clippy::single_match,
-    clippy::unnecessary_wraps,
-    clippy::wildcard_enum_match_arm
-)]
+#[allow(clippy::single_match, clippy::unnecessary_wraps)]
 fn remove_from_search_input(_: KeyEvent, app: &mut App) -> Result<()> {
     match app.state {
         StateMachine::Home {
@@ -402,12 +361,7 @@ fn remove_from_search_input(_: KeyEvent, app: &mut App) -> Result<()> {
     Ok(())
 }
 
-#[allow(
-    clippy::pattern_type_mismatch,
-    clippy::single_match,
-    clippy::unnecessary_wraps,
-    clippy::wildcard_enum_match_arm
-)]
+#[allow(clippy::single_match, clippy::unnecessary_wraps)]
 fn add_to_search_input(key_event: KeyEvent, app: &mut App) -> Result<()> {
     match app.state {
         StateMachine::Home {
@@ -589,10 +543,8 @@ fn top_bottom_highlights(key_event: KeyEvent, app: &mut App) -> Result<()> {
 }
 
 #[allow(
-    clippy::pattern_type_mismatch,
     clippy::single_match,
     clippy::unnecessary_wraps,
-    clippy::wildcard_enum_match_arm,
     clippy::integer_arithmetic
 )]
 fn highlight_bottom(_: KeyEvent, app: &mut App) -> Result<()> {
@@ -622,12 +574,7 @@ fn highlight_bottom(_: KeyEvent, app: &mut App) -> Result<()> {
     Ok(())
 }
 
-#[allow(
-    clippy::pattern_type_mismatch,
-    clippy::single_match,
-    clippy::unnecessary_wraps,
-    clippy::wildcard_enum_match_arm
-)]
+#[allow(clippy::single_match, clippy::unnecessary_wraps)]
 fn highlight_top(_: KeyEvent, app: &mut App) -> Result<()> {
     match &mut app.state {
         StateMachine::Home {

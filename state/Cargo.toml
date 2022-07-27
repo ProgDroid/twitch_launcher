@@ -1,0 +1,20 @@
+[package]
+name = "state"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+async-trait = "0.1"
+crossterm = "0.23"
+tui = "0.18.0"
+
+app_event = { path = "../app_event" }
+input = { path = "../input" }
+twitch = { path = "../twitch" }
+ui = { path = "../ui" }
+
+[dependencies.tokio]
+version = "1.17"
+features = ["full"]

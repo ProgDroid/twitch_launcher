@@ -6,10 +6,9 @@ pub trait Panel {
 }
 
 #[derive(PartialEq, Copy, Clone)]
-#[repr(usize)]
 pub enum Home {
-    Favourites = 0,
-    Search = 1,
+    Favourites,
+    Search,
 }
 
 impl Panel for Home {
