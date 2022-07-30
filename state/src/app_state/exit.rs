@@ -25,9 +25,18 @@ impl State for Exit {
 
     fn render<B: Backend>(&self, _: &Theme, _: &mut Frame<'_, B>, _: u64) {}
 
-    fn transition(&self, _: Event, _: UnboundedSender<Event>) -> Option<Transition> {
+    fn transition(
+        &self,
+        _: Event,
+        _: &Option<Account>,
+        _: UnboundedSender<Event>,
+    ) -> Option<Transition> {
         None
     }
 
-    fn handle(&self, _: KeyEvent) {}
+    fn handle(&self, _: KeyEvent) -> Option<Event> {
+        None
+    }
+
+    fn process(&mut self, _: Event, _: &UnboundedSender<Event>) {}
 }

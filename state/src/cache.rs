@@ -43,18 +43,18 @@ impl Cache {
         self.storage.len() - 1
     }
 
-    pub fn get(&mut self, index: usize, tx: UnboundedSender<Event>) -> Option<AppState> {
+    pub fn get(&mut self, index: usize, tx: &UnboundedSender<Event>) -> Option<AppState> {
         if let Some(state) = self.storage.get_mut(index) {
             match state {
                 AppState::AccountMissing(s) => {
                     return Some(AppState::AccountMissing(AccountMissing::new(
-                        s.timer, s.duration, tx,
+                        s.timer, s.duration,
                     )));
                 }
                 AppState::Startup(s) => {
-                    return Some(AppState::Startup(Startup::new(s.timer, s.duration, tx)));
+                    return Some(AppState::Startup(Startup::new(s.timer, s.duration)));
                 }
-                AppState::Home(s) => return Some(AppState::Home(Home::from(s, tx))),
+                AppState::Home(s) => return Some(AppState::Home(Home::from_existing(s, tx))),
                 AppState::Popup(_) | AppState::Exit(_) => return None, // Not cached
             }
         }

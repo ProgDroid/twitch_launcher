@@ -26,6 +26,9 @@ async fn main() -> Result<(), std::io::Error> {
     while app.is_running() {
         tui.draw(&mut app)?;
 
+        // TODO is this safe?
+        app.receive();
+
         match tui.events.next().await {
             Some(Event::Tick) => app.tick().await,
             Some(Event::Key(key_event)) => app.handle_input(key_event),

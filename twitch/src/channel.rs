@@ -27,6 +27,15 @@ pub struct Channel {
 }
 
 impl Channel {
+    #[must_use]
+    pub fn new(friendly_name: String, handle: String) -> Self {
+        Self {
+            friendly_name,
+            handle,
+            status: Status::default(),
+        }
+    }
+
     pub async fn update_status(handle: String, user_access_token: Secret) -> Status {
         let access_token = AccessToken::new(user_access_token.expose_value().to_owned());
 

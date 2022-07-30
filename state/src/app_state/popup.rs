@@ -75,12 +75,7 @@ pub struct Popup {
 // }
 
 impl Popup {
-    pub fn new_choice(
-        title: String,
-        message: String,
-        options: &[String],
-        tx: UnboundedSender<Event>,
-    ) -> Self {
+    pub fn new_choice(title: String, message: String, options: &[String]) -> Self {
         new(
             title,
             message,
@@ -88,11 +83,10 @@ impl Popup {
                 selected: 0,
                 options: options.to_vec(),
             }),
-            tx,
         )
     }
 
-    pub fn new_input(title: String, message: String, tx: UnboundedSender<Event>) -> Self {
+    pub fn new_input(title: String, message: String) -> Self {
         new(
             title,
             message,
@@ -100,26 +94,20 @@ impl Popup {
                 typing: false,
                 input: Vec::<char>::new(),
             }),
-            tx,
         )
     }
 
-    pub fn new_timed_info(
-        title: String,
-        message: String,
-        duration: u64,
-        tx: UnboundedSender<Event>,
-    ) -> Self {
-        new(title, message, Type::TimedInfo(TimedInfo { duration }), tx)
+    pub fn new_timed_info(title: String, message: String, duration: u64) -> Self {
+        new(title, message, Type::TimedInfo(TimedInfo { duration }))
     }
 }
 
-fn new(title: String, message: String, variant: Type, tx: UnboundedSender<Event>) -> Popup {
+fn new(title: String, message: String, variant: Type) -> Popup {
     Popup {
         title,
         message,
         variant,
-        input_handler: Handler::new(tx, Vec::<KeyBind<Event>>::new()),
+        input_handler: Handler::new(Vec::<KeyBind<Event>>::new()),
     }
 }
 
@@ -169,7 +157,12 @@ impl State for Popup {
         }
     }
 
-    fn transition(&self, event: Event, _: UnboundedSender<Event>) -> Option<Transition> {
+    fn transition(
+        &self,
+        event: Event,
+        _: &Option<Account>,
+        _: UnboundedSender<Event>,
+    ) -> Option<Transition> {
         match event {
             Event::Exited => Some(Transition::To(AppState::Exit(Exit::new()))),
             Event::PopupEnded => Some(Transition::Pop),
@@ -177,7 +170,9 @@ impl State for Popup {
         }
     }
 
-    fn handle(&self, key_event: KeyEvent) {
-        self.input_handler.handle(key_event);
+    fn handle(&self, key_event: KeyEvent) -> Option<Event> {
+        self.input_handler.handle(key_event)
     }
+
+    fn process(&mut self, _: Event, _: &UnboundedSender<Event>) {}
 }

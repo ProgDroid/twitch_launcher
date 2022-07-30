@@ -11,6 +11,7 @@ use crate::{
 use async_trait::async_trait;
 use crossterm::event::KeyEvent;
 use input::keybind::KeyBind;
+use std::fmt::{Display, Formatter, Result};
 use tokio::sync::mpsc::UnboundedSender;
 use tui::{backend::Backend, terminal::Frame};
 use twitch::account::Account;
@@ -26,10 +27,16 @@ pub trait State {
 
     fn render<B: Backend>(&self, theme: &Theme, frame: &mut Frame<'_, B>, timer: u64);
 
-    fn transition(&self, event: Event, events_sender: UnboundedSender<Event>)
-        -> Option<Transition>;
+    fn transition(
+        &self,
+        event: Event,
+        account: &Option<Account>,
+        tx: UnboundedSender<Event>,
+    ) -> Option<Transition>;
 
-    fn handle(&self, key_event: KeyEvent);
+    fn handle(&self, key_event: KeyEvent) -> Option<Event>;
+
+    fn process(&mut self, action: Event, tx: &UnboundedSender<Event>);
 }
 
 // #[must_use]
@@ -75,19 +82,20 @@ impl AppState {
     #[must_use]
     pub fn transition(
         &self,
+        account: &Option<Account>,
         event: Event,
         events_sender: UnboundedSender<Event>,
     ) -> Option<Transition> {
         match self {
-            Self::AccountMissing(state) => state.transition(event, events_sender),
-            Self::Startup(state) => state.transition(event, events_sender),
-            Self::Home(state) => state.transition(event, events_sender),
-            Self::Popup(state) => state.transition(event, events_sender),
-            Self::Exit(state) => state.transition(event, events_sender),
+            Self::AccountMissing(state) => state.transition(event, account, events_sender),
+            Self::Startup(state) => state.transition(event, account, events_sender),
+            Self::Home(state) => state.transition(event, account, events_sender),
+            Self::Popup(state) => state.transition(event, account, events_sender),
+            Self::Exit(state) => state.transition(event, account, events_sender),
         }
     }
 
-    pub fn handle(&self, key_event: KeyEvent) {
+    pub fn handle(&mut self, key_event: KeyEvent) -> Option<Event> {
         match self {
             Self::AccountMissing(state) => state.handle(key_event),
             Self::Startup(state) => state.handle(key_event),
@@ -97,10 +105,20 @@ impl AppState {
         }
     }
 
-    pub fn receive(&mut self, tx: &UnboundedSender<Event>) {
+    pub fn receive(&mut self) {
         match self {
-            Self::Home(state) => state.channel_check(tx),
+            Self::Home(state) => state.channel_check(),
             Self::AccountMissing(_) | Self::Startup(_) | Self::Popup(_) | Self::Exit(_) => {}
+        }
+    }
+
+    pub fn process(&mut self, action: Event, tx: &UnboundedSender<Event>) {
+        match self {
+            Self::AccountMissing(state) => state.process(action, tx),
+            Self::Startup(state) => state.process(action, tx),
+            Self::Home(state) => state.process(action, tx),
+            Self::Popup(state) => state.process(action, tx),
+            Self::Exit(state) => state.process(action, tx),
         }
     }
 }
@@ -502,3 +520,37 @@ impl AppState {
 // const fn ticks_from_seconds(tick_rate: u64, seconds: u64) -> u64 {
 //     (1000_u64 / tick_rate) * seconds
 // }
+
+#[derive(Clone)]
+pub enum MoveDirection {
+    Up,
+    Down,
+    Left,
+    Right,
+}
+
+impl Display for MoveDirection {
+    fn fmt(&self, f: &mut Formatter) -> Result {
+        match *self {
+            Self::Up => write!(f, "Up"),
+            Self::Down => write!(f, "Down"),
+            Self::Left => write!(f, "Left"),
+            Self::Right => write!(f, "Right"),
+        }
+    }
+}
+
+#[derive(Clone)]
+pub enum MoveEnd {
+    First,
+    Last,
+}
+
+impl Display for MoveEnd {
+    fn fmt(&self, f: &mut Formatter) -> Result {
+        match *self {
+            Self::First => write!(f, "First"),
+            Self::Last => write!(f, "Last"),
+        }
+    }
+}

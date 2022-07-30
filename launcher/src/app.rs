@@ -21,10 +21,7 @@ impl App {
     pub async fn new() -> Self {
         let account: Option<Account> = match Account::load().await {
             Ok(account) => Some(account),
-            Err(e) => {
-                eprintln!("Could not load account: {}", e);
-                None
-            }
+            Err(_) => None,
         };
 
         let (sender, receiver) = mpsc::unbounded_channel();
@@ -34,9 +31,9 @@ impl App {
         Self {
             running: true,
             theme: Theme::default(),
-            state: StateMachine::new(sender.clone()),
+            state: StateMachine::new(account.is_some(), sender),
             events: receiver,
-            input_handler: Handler::new(sender, app_inputs()),
+            input_handler: Handler::new(app_inputs()),
             account,
         }
     }
@@ -57,8 +54,18 @@ impl App {
     }
 
     pub fn handle_input(&mut self, key_event: KeyEvent) {
-        self.input_handler.handle(key_event);
+        if let Some(event) = self.input_handler.handle(key_event) {
+            match event {
+                Event::Exit => self.running = false,
+                Event::SetTheme(_) => {}
+            }
+        }
+
         self.state.handle(key_event);
+    }
+
+    pub fn receive(&mut self) {
+        self.state.receive();
     }
 
     #[must_use]

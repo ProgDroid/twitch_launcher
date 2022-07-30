@@ -7,7 +7,3 @@ edition = "2021"
 
 [dependencies]
 crossterm = "0.23"
-
-[dependencies.tokio]
-version = "1.17"
-features = ["full"]

@@ -1,12 +1,13 @@
 use crate::{
     app_state::{exit::Exit, popup::Popup},
     event::Event,
-    input_mappings::home_inputs,
-    state::{AppState, State},
+    input_mappings::{home_inputs, typing_inputs},
+    state::{AppState, MoveDirection, MoveEnd, State},
     transition::Transition,
+    util::{index_add, index_subtract},
 };
 use async_trait::async_trait;
-use crossterm::event::KeyEvent;
+use crossterm::event::{KeyCode, KeyEvent};
 use input::{handler::Handler, keybind::KeyBind};
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 use tui::{backend::Backend, terminal::Frame};
@@ -14,7 +15,11 @@ use twitch::{
     account::Account,
     channel::{status::Status, Channel},
 };
-use ui::{panel::Home as HomePanel, render, theme::Theme};
+use ui::{
+    panel::{Home as HomePanel, Panel},
+    render,
+    theme::Theme,
+};
 
 #[allow(dead_code)]
 pub struct Home {
@@ -29,7 +34,14 @@ pub struct Home {
 }
 
 impl Home {
-    pub fn new(favourites: &[Channel], tx: UnboundedSender<Event>) -> Self {
+    pub fn new(
+        channel_highlight: usize,
+        favourites: &[Channel],
+        typing: bool,
+        search_input: &[char],
+        focused_panel: HomePanel,
+        tx: &UnboundedSender<Event>,
+    ) -> Self {
         let (sender, receiver) = unbounded_channel();
 
         let mut channels_awaiting: Vec<Channel> = Vec::new();
@@ -44,20 +56,26 @@ impl Home {
             let _result = tx.send(Event::CheckChannels(channels_awaiting));
         }
 
+        let inputs = if typing {
+            typing_inputs()
+        } else {
+            home_inputs()
+        };
+
         Self {
-            channel_highlight: 0,
+            channel_highlight,
             favourites: favourites.to_vec(),
             channel_check: receiver,
             channel_check_sender: sender,
-            typing: false,
-            search_input: Vec::new(),
-            focused_panel: HomePanel::default(),
-            input_handler: Handler::new(tx, home_inputs()),
+            typing,
+            search_input: search_input.to_vec(),
+            focused_panel,
+            input_handler: Handler::new(inputs),
         }
     }
 
     #[allow(clippy::indexing_slicing)]
-    pub fn from(state: &mut Self, tx: UnboundedSender<Event>) -> Self {
+    pub fn from_existing(state: &mut Self, tx: &UnboundedSender<Event>) -> Self {
         let mut channels = state.favourites.clone();
 
         while let Ok((handle, status)) = state.channel_check.try_recv() {
@@ -70,18 +88,22 @@ impl Home {
             channels[index].status = status;
         }
 
-        let mut home = Self::new(&channels, tx);
+        Self::new(
+            state.channel_highlight,
+            &channels,
+            state.typing,
+            &state.search_input,
+            state.focused_panel,
+            tx,
+        )
+    }
 
-        home.channel_highlight = state.channel_highlight;
-        home.typing = state.typing;
-        home.search_input = state.search_input.clone();
-        home.focused_panel = state.focused_panel;
-
-        home
+    pub fn init(favourites: &[Channel], tx: &UnboundedSender<Event>) -> Self {
+        Self::new(0, favourites, false, &Vec::new(), HomePanel::default(), tx)
     }
 
     #[allow(clippy::indexing_slicing)]
-    pub fn channel_check(&mut self, events: &UnboundedSender<Event>) {
+    pub fn channel_check(&mut self) {
         let mut channels = self.favourites.clone();
 
         while let Ok((handle, status)) = self.channel_check.try_recv() {
@@ -94,7 +116,7 @@ impl Home {
             channels[index].status = status;
         }
 
-        let _result = events.send(Event::FavouritesLoaded(channels));
+        self.favourites = channels;
     }
 }
 
@@ -119,32 +141,124 @@ impl State for Home {
         );
     }
 
-    fn transition(&self, event: Event, tx: UnboundedSender<Event>) -> Option<Transition> {
+    #[allow(clippy::too_many_lines)]
+    fn transition(
+        &self,
+        event: Event,
+        account: &Option<Account>,
+        tx: UnboundedSender<Event>,
+    ) -> Option<Transition> {
         match event {
-            Event::ChannelSelected(channel, chat) => {
-                if let Err(e) = channel.launch() {
-                    eprintln!("Error opening stream: {}", e);
+            Event::Exited => Some(Transition::To(AppState::Exit(Exit::new()))),
+            Event::CheckChannels(channels) => {
+                if let Some(acc) = account {
+                    Channel::check(&channels, acc, &self.channel_check_sender);
                 }
 
-                if chat {
-                    if let Err(e) = channel.launch_chat() {
-                        eprintln!("Error opening chat: {}", e);
+                None
+            }
+            Event::ChoicePopupStarted((title, message, options)) => Some(Transition::Push(
+                AppState::Popup(Popup::new_choice(title, message, &options)),
+            )),
+            Event::InputPopupStarted((title, message)) => Some(Transition::Push(AppState::Popup(
+                Popup::new_input(title, message),
+            ))),
+            Event::TimedInfoPopupStarted((title, message, duration)) => Some(Transition::Push(
+                AppState::Popup(Popup::new_timed_info(title, message, duration)),
+            )),
+            #[allow(clippy::collapsible_else_if)]
+            Event::ChatChoice(choice) => {
+                if self.typing && !self.search_input.is_empty() {
+                    // TODO check if channel exists?
+                    // TODO check if channel is online?
+                    let handle: String = self.search_input.iter().collect();
+
+                    let channel = Channel::new(handle.clone(), handle);
+
+                    let _result = tx.send(Event::ChannelSelected(channel, choice));
+                } else {
+                    if let Some(channel) = self.favourites.get(self.channel_highlight) {
+                        let _result = tx.send(Event::ChannelSelected((*channel).clone(), choice));
                     }
                 }
 
                 None
             }
-            Event::Exited => Some(Transition::To(AppState::Exit(Exit::new()))),
-            Event::ChoicePopupStarted((title, message, options)) => Some(Transition::Push(
-                AppState::Popup(Popup::new_choice(title, message, &options, tx)),
-            )),
+            Event::CycleTab(_direction) => None,
             _ => None,
         }
     }
 
-    fn handle(&self, key_event: KeyEvent) {
-        self.input_handler.handle(key_event);
+    fn handle(&self, key_event: KeyEvent) -> Option<Event> {
+        let action = self.input_handler.handle(key_event);
+
+        if self.typing && action.is_none() {
+            if let KeyCode::Char(char) = key_event.code {
+                return Some(Event::Typed(char));
+            }
+        }
+
+        action
+    }
+
+    fn process(&mut self, action: Event, tx: &UnboundedSender<Event>) {
+        match action {
+            Event::Exited | Event::CycleTab(_) => {
+                let _result = tx.send(action);
+            }
+            Event::CycleHighlight(direction) => {
+                self.channel_highlight = match direction {
+                    MoveDirection::Down => index_add(self.channel_highlight, self.favourites.len()),
+                    MoveDirection::Up => {
+                        index_subtract(self.channel_highlight, self.favourites.len())
+                    }
+                    _ => self.channel_highlight,
+                };
+            }
+            Event::HomeEndHighlight(end) => {
+                self.channel_highlight = match end {
+                    MoveEnd::First => 0,
+                    MoveEnd::Last => self.favourites.len(),
+                };
+            }
+            Event::Selected => match self.focused_panel {
+                HomePanel::Favourites => {
+                    chat_popup(tx);
+                }
+                HomePanel::Search => {
+                    self.typing = true;
+                    self.input_handler = Handler::new(typing_inputs());
+                }
+            },
+            Event::CyclePanel(direction) => {
+                self.focused_panel = match direction {
+                    MoveDirection::Left => self.focused_panel.left(),
+                    MoveDirection::Right => self.focused_panel.right(),
+                    _ => self.focused_panel,
+                };
+            }
+            Event::StopTyping => {
+                self.typing = false;
+                self.input_handler = Handler::new(home_inputs());
+            }
+            Event::Submit => {
+                chat_popup(tx);
+            }
+            Event::DeleteChar => {
+                self.search_input.pop();
+            }
+            Event::Typed(char) => {
+                self.search_input.push(char);
+            }
+            _ => {}
+        }
     }
 }
 
-// TODO add check favourites function and force check favourites function
+fn chat_popup(tx: &UnboundedSender<Event>) {
+    let _result = tx.send(Event::ChoicePopupStarted((
+        String::from("Launch Chat"),
+        String::from("Do you want to launch the chat with the stream?"),
+        vec![String::from("No"), String::from("Yes")],
+    )));
+}

@@ -25,16 +25,18 @@ pub struct Startup {
 }
 
 impl Startup {
-    pub fn new(timer: u64, duration: u64, tx: UnboundedSender<Event>) -> Self {
+    pub fn new(timer: u64, duration: u64) -> Self {
         Self {
             timer,
             duration,
-            input_handler: Handler::new(tx, Vec::new()),
+            input_handler: Handler::new(Vec::new()),
         }
     }
+}
 
-    pub fn default(tx: UnboundedSender<Event>) -> Self {
-        Self::new(0, STARTUP_DURATION, tx)
+impl Default for Startup {
+    fn default() -> Self {
+        Self::new(0, STARTUP_DURATION)
     }
 }
 
@@ -57,14 +59,15 @@ impl State for Startup {
     fn transition(
         &self,
         event: Event,
-        events_sender: UnboundedSender<Event>,
+        _: &Option<Account>,
+        tx: UnboundedSender<Event>,
     ) -> Option<Transition> {
         match event {
             Event::Started => {
                 if let Ok(channels) = Channel::load_from_file(CHANNELS_FILE) {
-                    return Some(Transition::To(AppState::Home(Home::new(
+                    return Some(Transition::To(AppState::Home(Home::init(
                         channels.as_slice(),
-                        events_sender,
+                        &tx,
                     ))));
                 };
 
@@ -75,9 +78,11 @@ impl State for Startup {
         }
     }
 
-    fn handle(&self, key_event: KeyEvent) {
-        self.input_handler.handle(key_event);
+    fn handle(&self, key_event: KeyEvent) -> Option<Event> {
+        self.input_handler.handle(key_event)
     }
+
+    fn process(&mut self, _: Event, _: &UnboundedSender<Event>) {}
 }
 
 pub struct AccountMissing {
@@ -87,12 +92,18 @@ pub struct AccountMissing {
 }
 
 impl AccountMissing {
-    pub fn new(timer: u64, duration: u64, tx: UnboundedSender<Event>) -> Self {
+    pub fn new(timer: u64, duration: u64) -> Self {
         Self {
             timer,
             duration,
-            input_handler: Handler::new(tx, Vec::new()),
+            input_handler: Handler::new(Vec::new()),
         }
+    }
+}
+
+impl Default for AccountMissing {
+    fn default() -> Self {
+        Self::new(0, STARTUP_DURATION)
     }
 }
 
@@ -112,14 +123,21 @@ impl State for AccountMissing {
         account_missing(theme, frame, timer);
     }
 
-    fn transition(&self, event: Event, _: UnboundedSender<Event>) -> Option<Transition> {
+    fn transition(
+        &self,
+        event: Event,
+        _: &Option<Account>,
+        _: UnboundedSender<Event>,
+    ) -> Option<Transition> {
         match event {
             Event::Exited => Some(Transition::To(AppState::Exit(Exit::new()))),
             _ => None,
         }
     }
 
-    fn handle(&self, key_event: KeyEvent) {
-        self.input_handler.handle(key_event);
+    fn handle(&self, key_event: KeyEvent) -> Option<Event> {
+        self.input_handler.handle(key_event)
     }
+
+    fn process(&mut self, _: Event, _: &UnboundedSender<Event>) {}
 }
