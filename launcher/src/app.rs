@@ -72,29 +72,4 @@ impl App {
     pub const fn is_running(&self) -> bool {
         self.running
     }
-
-    // pub fn stop(&mut self) {
-    //     self.running = false;
-    // }
-
-    // pub fn theme(&self) -> &Theme {
-    //     &self.theme
-    // }
-
-    // pub fn set_theme(&mut self, theme: Theme) {
-    //     self.theme = theme;
-    // }
-
-    // // are all of these needed?
-    // pub fn state(&self) -> &StateMachine {
-    //     &self.state
-    // }
-
-    // pub fn state_mut(&mut self) -> &mut StateMachine {
-    //     &mut self.state
-    // }
-
-    // pub fn events_mut(&mut self) -> &mut UnboundedReceiver<Event> {
-    //     &mut self.events
-    // }
 }

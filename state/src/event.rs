@@ -1,4 +1,7 @@
-use crate::state::{MoveDirection, MoveEnd};
+use crate::{
+    app_state::popup::Callback,
+    state::{MoveDirection, MoveEnd},
+};
 use std::fmt::{Display, Formatter, Result};
 use twitch::channel::Channel;
 
@@ -10,12 +13,12 @@ pub enum Event {
     Exited,
     CheckChannels(Vec<Channel>),
     ChannelSelected(Channel, bool),
-    ChoicePopupStarted((String, String, Vec<String>)),
-    InputPopupStarted((String, String)),
-    TimedInfoPopupStarted((String, String, u64)),
+    ChoicePopupStarted((String, String, Vec<String>, Option<Callback>)),
+    InputPopupStarted((String, String, Option<Callback>)),
+    TimedInfoPopupStarted((String, String, u64, Option<Callback>)),
     PopupEnded,
-    // PopupOutput(Output),
-    ChatChoice(bool),
+    ChatChoice(usize),
+    ChatChoiceSearch(usize),
     CycleTab(MoveDirection),
     CycleHighlight(MoveDirection),
     HomeEndHighlight(MoveEnd),
@@ -33,13 +36,18 @@ impl Display for Event {
             Self::Started => write!(f, "Started"),
             Self::Exited => write!(f, "Exit"),
             Self::CheckChannels(_) => write!(f, "Check Channels"),
-            Self::ChannelSelected(channel, _) => write!(f, "Channel {} selected", channel.handle),
+            Self::ChannelSelected(channel, choice) => write!(
+                f,
+                "Channel {} selected {} chat",
+                channel.handle,
+                if *choice { "with" } else { "without" }
+            ),
             Self::ChoicePopupStarted(_) => write!(f, "Choice Popup started"),
             Self::InputPopupStarted(_) => write!(f, "Input Popup started"),
             Self::TimedInfoPopupStarted(_) => write!(f, "Timed Info Popup started"),
             Self::PopupEnded => write!(f, "Popup End"),
-            // Self::PopupOutput(output) => write!(f, "Popup Output {}", output),
             Self::ChatChoice(choice) => write!(f, "Chat Choice: {}", choice),
+            Self::ChatChoiceSearch(choice) => write!(f, "Chat Choice from Search: {}", choice),
             Self::CycleTab(direction) => write!(f, "Cycle Tab {}", direction),
             Self::CycleHighlight(direction) => write!(f, "Cycle Highlight {}", direction),
             Self::HomeEndHighlight(end) => write!(f, "Highlight to {}", end),

@@ -5,12 +5,14 @@ mod user_input;
 use crate::{
     app_state::exit::Exit,
     event::Event,
-    state::{AppState, State},
+    input_mappings::{choice_inputs, timed_info_inputs, typing_inputs, user_input_inputs},
+    state::{AppState, MoveDirection, MoveEnd, State},
     transition::Transition,
+    util::{index_add, index_subtract},
 };
 use async_trait::async_trait;
 use choice::Choice;
-use crossterm::event::KeyEvent;
+use crossterm::event::{KeyCode, KeyEvent};
 use input::{handler::Handler, keybind::KeyBind};
 use std::fmt::{Display, Formatter, Result};
 use timed_info::TimedInfo;
@@ -19,6 +21,8 @@ use tui::{backend::Backend, terminal::Frame};
 use twitch::account::Account;
 use ui::{render, theme::Theme};
 use user_input::Input;
+
+pub type Callback = fn(&UnboundedSender<Event>, &Output);
 
 pub enum Type {
     Choice(Choice),
@@ -36,46 +40,27 @@ impl Display for Type {
     }
 }
 
-// #[derive(Clone)]
-// pub enum Output {
-//     Empty,
-//     Input(String),
-//     Index(usize),
-// }
+#[derive(Clone)]
+pub enum Output {
+    Input(String),
+    Index(usize),
+}
 
 pub struct Popup {
     title: String,
     message: String,
     pub variant: Type,
+    callback: Option<Callback>,
     input_handler: Handler<Event>,
 }
 
-// #[must_use]
-// fn get_bool_choices() -> Vec<Choice> {
-//     vec![
-//         Choice {
-//             display_text: String::from(BoolChoice::False.yes_no_display()),
-//         },
-//         Choice {
-//             display_text: String::from(BoolChoice::True.yes_no_display()),
-//         },
-//     ]
-// }
-
-// #[must_use]
-// pub fn get_chat_choice() -> Popup {
-//     Popup {
-//         title: String::from("Launch Chat"),
-//         message: String::from("Do you want to launch the chat with the stream?"),
-//         variant: PopupType::Choice {
-//             selected: 0,
-//             options: get_bool_choices(),
-//         },
-//     }
-// }
-
 impl Popup {
-    pub fn new_choice(title: String, message: String, options: &[String]) -> Self {
+    pub fn new_choice(
+        title: String,
+        message: String,
+        options: &[String],
+        callback: Option<Callback>,
+    ) -> Self {
         new(
             title,
             message,
@@ -83,10 +68,11 @@ impl Popup {
                 selected: 0,
                 options: options.to_vec(),
             }),
+            callback,
         )
     }
 
-    pub fn new_input(title: String, message: String) -> Self {
+    pub fn new_input(title: String, message: String, callback: Option<Callback>) -> Self {
         new(
             title,
             message,
@@ -94,20 +80,44 @@ impl Popup {
                 typing: false,
                 input: Vec::<char>::new(),
             }),
+            callback,
         )
     }
 
-    pub fn new_timed_info(title: String, message: String, duration: u64) -> Self {
-        new(title, message, Type::TimedInfo(TimedInfo { duration }))
+    pub fn new_timed_info(
+        title: String,
+        message: String,
+        duration: u64,
+        callback: Option<Callback>,
+    ) -> Self {
+        new(
+            title,
+            message,
+            Type::TimedInfo(TimedInfo { duration }),
+            callback,
+        )
     }
 }
 
-fn new(title: String, message: String, variant: Type) -> Popup {
+fn new(title: String, message: String, variant: Type, callback: Option<Callback>) -> Popup {
+    let inputs = match &variant {
+        Type::Choice(_) => choice_inputs(),
+        Type::Input(popup) => {
+            if popup.typing {
+                typing_inputs()
+            } else {
+                user_input_inputs()
+            }
+        }
+        Type::TimedInfo(_) => timed_info_inputs(),
+    };
+
     Popup {
         title,
         message,
         variant,
-        input_handler: Handler::new(Vec::<KeyBind<Event>>::new()),
+        callback,
+        input_handler: Handler::new(inputs),
     }
 }
 
@@ -171,8 +181,98 @@ impl State for Popup {
     }
 
     fn handle(&self, key_event: KeyEvent) -> Option<Event> {
-        self.input_handler.handle(key_event)
+        let action = self.input_handler.handle(key_event);
+
+        if let Type::Input(popup) = &self.variant {
+            if popup.typing && action.is_none() {
+                if let KeyCode::Char(char) = key_event.code {
+                    return Some(Event::Typed(char));
+                }
+            }
+        }
+
+        action
     }
 
-    fn process(&mut self, _: Event, _: &UnboundedSender<Event>) {}
+    fn process(&mut self, action: Event, tx: &UnboundedSender<Event>) {
+        match action {
+            Event::CycleHighlight(direction) => match self.variant {
+                Type::Choice(ref mut popup) => {
+                    popup.selected = match direction {
+                        MoveDirection::Down => index_add(popup.selected, popup.options.len()),
+                        MoveDirection::Up => index_subtract(popup.selected, popup.options.len()),
+                        _ => popup.selected,
+                    };
+                }
+                Type::Input(_) | Type::TimedInfo(_) => {}
+            },
+            Event::HomeEndHighlight(end) => match self.variant {
+                Type::Choice(ref mut popup) => {
+                    popup.selected = match end {
+                        MoveEnd::First => 0,
+                        MoveEnd::Last => popup.options.len(),
+                    };
+                }
+                Type::Input(_) | Type::TimedInfo(_) => {}
+            },
+            Event::Selected => match self.variant {
+                Type::Choice(ref mut popup) => {
+                    let _result = tx.send(Event::PopupEnded);
+
+                    if let Some(func) = self.callback {
+                        func(tx, &Output::Index(popup.selected));
+                    }
+                }
+                Type::Input(ref mut popup) => {
+                    popup.typing = true;
+                    self.input_handler = Handler::new(typing_inputs());
+                }
+                Type::TimedInfo(_) => {}
+            },
+            Event::StopTyping => match self.variant {
+                Type::Input(ref mut popup) => {
+                    popup.typing = false;
+                    self.input_handler = Handler::new(user_input_inputs());
+                }
+                Type::Choice(_) | Type::TimedInfo(_) => {}
+            },
+            Event::Submit => match self.variant {
+                Type::Input(ref mut popup) => {
+                    let _result = tx.send(Event::PopupEnded);
+
+                    let input: String = popup.input.iter().collect();
+
+                    if let Some(func) = self.callback {
+                        func(tx, &Output::Input(input));
+                    }
+                }
+                Type::Choice(_) | Type::TimedInfo(_) => {}
+            },
+            Event::DeleteChar => match self.variant {
+                Type::Input(ref mut popup) => {
+                    popup.input.pop();
+                }
+                Type::Choice(_) | Type::TimedInfo(_) => {}
+            },
+            Event::Typed(char) => match self.variant {
+                Type::Input(ref mut popup) => {
+                    popup.input.push(char);
+                }
+                Type::Choice(_) | Type::TimedInfo(_) => {}
+            },
+            _ => {}
+        }
+    }
+}
+
+pub fn chat_choice(tx: &UnboundedSender<Event>, output: &Output) {
+    if let Output::Index(choice) = output {
+        let _result = tx.send(Event::ChatChoice(*choice));
+    }
+}
+
+pub fn chat_choice_search(tx: &UnboundedSender<Event>, output: &Output) {
+    if let Output::Index(choice) = output {
+        let _result = tx.send(Event::ChatChoiceSearch(*choice));
+    }
 }

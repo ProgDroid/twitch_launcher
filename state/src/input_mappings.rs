@@ -7,8 +7,48 @@ use input::keybind::KeyBind;
 
 #[allow(clippy::too_many_lines)]
 pub fn home_inputs() -> Vec<KeyBind<Event>> {
+    [
+        exit(),
+        cycle_tabs(),
+        handle_highlights(),
+        select(),
+        cycle_panel(),
+    ]
+    .concat()
+}
+
+pub fn typing_inputs() -> Vec<KeyBind<Event>> {
     vec![
-        // Exit
+        KeyBind {
+            event: KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE),
+            action: Event::StopTyping,
+        },
+        KeyBind {
+            event: KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE),
+            action: Event::Submit,
+        },
+        KeyBind {
+            event: KeyEvent::new(KeyCode::Backspace, KeyModifiers::NONE),
+            action: Event::DeleteChar,
+        },
+    ]
+}
+
+pub fn choice_inputs() -> Vec<KeyBind<Event>> {
+    [handle_highlights(), select()].concat()
+}
+
+pub fn user_input_inputs() -> Vec<KeyBind<Event>> {
+    select()
+}
+
+#[inline]
+pub const fn timed_info_inputs() -> Vec<KeyBind<Event>> {
+    Vec::new()
+}
+
+fn exit() -> Vec<KeyBind<Event>> {
+    vec![
         KeyBind {
             event: KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE),
             action: Event::Exited,
@@ -21,7 +61,11 @@ pub fn home_inputs() -> Vec<KeyBind<Event>> {
             event: KeyEvent::new(KeyCode::Char('Q'), KeyModifiers::SHIFT),
             action: Event::Exited,
         },
-        // Cycle Tabs
+    ]
+}
+
+fn cycle_tabs() -> Vec<KeyBind<Event>> {
+    vec![
         KeyBind {
             event: KeyEvent::new(KeyCode::Tab, KeyModifiers::NONE),
             action: Event::CycleTab(MoveDirection::Right),
@@ -30,7 +74,11 @@ pub fn home_inputs() -> Vec<KeyBind<Event>> {
             event: KeyEvent::new(KeyCode::BackTab, KeyModifiers::SHIFT),
             action: Event::CycleTab(MoveDirection::Left),
         },
-        // Cycle Highlights
+    ]
+}
+
+fn handle_highlights() -> Vec<KeyBind<Event>> {
+    vec![
         KeyBind {
             event: KeyEvent::new(KeyCode::Char('s'), KeyModifiers::NONE),
             action: Event::CycleHighlight(MoveDirection::Down),
@@ -80,7 +128,11 @@ pub fn home_inputs() -> Vec<KeyBind<Event>> {
             event: KeyEvent::new(KeyCode::Up, KeyModifiers::CONTROL),
             action: Event::HomeEndHighlight(MoveEnd::First),
         },
-        // Select
+    ]
+}
+
+fn select() -> Vec<KeyBind<Event>> {
+    vec![
         KeyBind {
             event: KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE),
             action: Event::Selected,
@@ -89,7 +141,11 @@ pub fn home_inputs() -> Vec<KeyBind<Event>> {
             event: KeyEvent::new(KeyCode::Char(' '), KeyModifiers::NONE),
             action: Event::Selected,
         },
-        // Cycle Panel
+    ]
+}
+
+fn cycle_panel() -> Vec<KeyBind<Event>> {
+    vec![
         KeyBind {
             event: KeyEvent::new(KeyCode::Char('d'), KeyModifiers::NONE),
             action: Event::CyclePanel(MoveDirection::Right),
@@ -116,22 +172,3 @@ pub fn home_inputs() -> Vec<KeyBind<Event>> {
         },
     ]
 }
-
-pub fn typing_inputs() -> Vec<KeyBind<Event>> {
-    vec![
-        KeyBind {
-            event: KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE),
-            action: Event::StopTyping,
-        },
-        KeyBind {
-            event: KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE),
-            action: Event::Submit,
-        },
-        KeyBind {
-            event: KeyEvent::new(KeyCode::Backspace, KeyModifiers::NONE),
-            action: Event::DeleteChar,
-        },
-    ]
-}
-
-// TODO popup inputs

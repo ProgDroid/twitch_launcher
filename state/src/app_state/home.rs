@@ -1,5 +1,8 @@
 use crate::{
-    app_state::{exit::Exit, popup::Popup},
+    app_state::{
+        exit::Exit,
+        popup::{chat_choice, chat_choice_search, Popup},
+    },
     event::Event,
     input_mappings::{home_inputs, typing_inputs},
     state::{AppState, MoveDirection, MoveEnd, State},
@@ -21,7 +24,6 @@ use ui::{
     theme::Theme,
 };
 
-#[allow(dead_code)]
 pub struct Home {
     channel_highlight: usize,
     pub favourites: Vec<Channel>,
@@ -157,34 +159,55 @@ impl State for Home {
 
                 None
             }
-            Event::ChoicePopupStarted((title, message, options)) => Some(Transition::Push(
-                AppState::Popup(Popup::new_choice(title, message, &options)),
+            Event::ChoicePopupStarted((title, message, options, callback)) => {
+                Some(Transition::Push(AppState::Popup(Popup::new_choice(
+                    title, message, &options, callback,
+                ))))
+            }
+            Event::InputPopupStarted((title, message, callback)) => Some(Transition::Push(
+                AppState::Popup(Popup::new_input(title, message, callback)),
             )),
-            Event::InputPopupStarted((title, message)) => Some(Transition::Push(AppState::Popup(
-                Popup::new_input(title, message),
-            ))),
-            Event::TimedInfoPopupStarted((title, message, duration)) => Some(Transition::Push(
-                AppState::Popup(Popup::new_timed_info(title, message, duration)),
-            )),
-            #[allow(clippy::collapsible_else_if)]
+            Event::TimedInfoPopupStarted((title, message, duration, callback)) => {
+                Some(Transition::Push(AppState::Popup(Popup::new_timed_info(
+                    title, message, duration, callback,
+                ))))
+            }
             Event::ChatChoice(choice) => {
-                if self.typing && !self.search_input.is_empty() {
-                    // TODO check if channel exists?
-                    // TODO check if channel is online?
-                    let handle: String = self.search_input.iter().collect();
+                let chat_choice = choice == 1;
 
-                    let channel = Channel::new(handle.clone(), handle);
+                if let Some(channel) = self.favourites.get(self.channel_highlight) {
+                    let _result = tx.send(Event::ChannelSelected((*channel).clone(), chat_choice));
+                }
 
-                    let _result = tx.send(Event::ChannelSelected(channel, choice));
-                } else {
-                    if let Some(channel) = self.favourites.get(self.channel_highlight) {
-                        let _result = tx.send(Event::ChannelSelected((*channel).clone(), choice));
+                None
+            }
+            Event::ChatChoiceSearch(choice) => {
+                let chat_choice = choice == 1;
+
+                // TODO check if channel exists?
+                // TODO check if channel is online?
+                let handle: String = self.search_input.iter().collect();
+
+                let channel = Channel::new(handle.clone(), handle);
+
+                let _result = tx.send(Event::ChannelSelected(channel, chat_choice));
+
+                None
+            }
+            Event::CycleTab(_direction) => None,
+            Event::ChannelSelected(channel, chat) => {
+                if let Err(e) = channel.launch() {
+                    eprintln!("Error opening stream: {}", e);
+                }
+
+                if chat {
+                    if let Err(e) = channel.launch_chat() {
+                        eprintln!("Error opening chat: {}", e);
                     }
                 }
 
                 None
             }
-            Event::CycleTab(_direction) => None,
             _ => None,
         }
     }
@@ -242,7 +265,9 @@ impl State for Home {
                 self.input_handler = Handler::new(home_inputs());
             }
             Event::Submit => {
-                chat_popup(tx);
+                self.typing = false;
+                self.input_handler = Handler::new(home_inputs());
+                chat_popup_search(tx);
             }
             Event::DeleteChar => {
                 self.search_input.pop();
@@ -260,5 +285,15 @@ fn chat_popup(tx: &UnboundedSender<Event>) {
         String::from("Launch Chat"),
         String::from("Do you want to launch the chat with the stream?"),
         vec![String::from("No"), String::from("Yes")],
+        Some(chat_choice),
+    )));
+}
+
+fn chat_popup_search(tx: &UnboundedSender<Event>) {
+    let _result = tx.send(Event::ChoicePopupStarted((
+        String::from("Launch Chat"),
+        String::from("Do you want to launch the chat with the stream?"),
+        vec![String::from("No"), String::from("Yes")],
+        Some(chat_choice_search),
     )));
 }

@@ -54,14 +54,12 @@ impl StateMachine {
 
         if let Ok(e) = event {
             #[allow(clippy::single_match)]
-            match e {
+            match &e {
                 Event::Exited => {
                     let _result = self.app_events.send(AppEvent::Exit);
                 }
                 _ => {}
             }
-
-            // println!("{}", &e);
 
             if let Some(transition) = self
                 .state
@@ -92,14 +90,6 @@ impl StateMachine {
                 self.timer = 0;
             }
         };
-
-        // if let Ok(event) = self.events.try_recv() {
-        //     use Event::*;
-        //     match event {
-        //         Exited => self.app_events.send(AppEvent::Exit),
-        //         _ => Ok(()),
-        //     }
-        // }
     }
 
     pub fn render<B: Backend>(&mut self, theme: &Theme, frame: &mut Frame<'_, B>) {
