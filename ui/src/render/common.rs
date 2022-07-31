@@ -1,6 +1,4 @@
 use crate::theme::{Elevation, Theme};
-use input::keybind::KeyBind;
-use std::fmt::Display;
 use tui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
@@ -134,10 +132,7 @@ pub fn generate_search_box<'a>(
     )
 }
 
-pub fn generate_keys_widget<'a, T: Display + Clone>(
-    theme: &Theme,
-    keybinds: &[KeyBind<T>],
-) -> Paragraph<'a> {
+pub fn generate_keys_widget<'a>(theme: &Theme, keybinds: &[String]) -> Paragraph<'a> {
     let info_text: Vec<Span> = keybinds
         .iter()
         .enumerate()

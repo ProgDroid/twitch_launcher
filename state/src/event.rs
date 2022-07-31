@@ -2,10 +2,9 @@ use crate::{
     app_state::popup::Callback,
     state::{MoveDirection, MoveEnd},
 };
+use input::handler::Action;
 use std::fmt::{Display, Formatter, Result};
 use twitch::channel::Channel;
-
-// TODO split this into action and event? for keybinds. something like `CycleTab` would be ambiguous
 
 #[derive(Clone)]
 pub enum Event {
@@ -57,6 +56,21 @@ impl Display for Event {
             Self::Submit => write!(f, "Submit"),
             Self::DeleteChar => write!(f, "Delete Char"),
             Self::Typed(char) => write!(f, "Typed {}", char),
+        }
+    }
+}
+
+impl Action for Event {
+    fn handle(&self) -> Option<&str> {
+        match self {
+            Self::Exited => Some("Exit"),
+            Self::CycleTab(_) => Some("Cycle Tabs"),
+            Self::CycleHighlight(_) | Self::HomeEndHighlight(_) => Some("Cycle List"),
+            Self::Selected => Some("Select"),
+            Self::CyclePanel(_) => Some("Cycle Panels"),
+            Self::StopTyping => Some("Stop Typing"),
+            Self::Submit => Some("Submit"),
+            _ => None,
         }
     }
 }

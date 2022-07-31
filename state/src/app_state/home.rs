@@ -11,7 +11,7 @@ use crate::{
 };
 use async_trait::async_trait;
 use crossterm::event::{KeyCode, KeyEvent};
-use input::{handler::Handler, keybind::KeyBind};
+use input::handler::Handler;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 use tui::{backend::Backend, terminal::Frame};
 use twitch::{
@@ -124,10 +124,6 @@ impl Home {
 
 #[async_trait]
 impl State for Home {
-    fn keybinds(&self) -> Vec<KeyBind<Event>> {
-        self.input_handler.inputs.clone()
-    }
-
     async fn tick(&self, _: &Option<Account>, _: u64, _: UnboundedSender<Event>) {}
 
     fn render<B: Backend>(&self, theme: &Theme, frame: &mut Frame<'_, B>, _: u64) {
@@ -139,7 +135,7 @@ impl State for Home {
             self.typing,
             &self.search_input,
             &self.focused_panel,
-            &self.keybinds(),
+            &self.input_handler.render(),
         );
     }
 

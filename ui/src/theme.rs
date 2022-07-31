@@ -1,7 +1,7 @@
 use num::clamp;
 use tui::style::{Color, Modifier};
 
-// TODO write unit tests
+// TODO write unit(+integration?) tests
 // TODO this is a strong argument for a different storage format (e.g. TOML/YAML)
 
 #[derive(Clone)]

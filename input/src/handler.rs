@@ -1,14 +1,21 @@
 use crate::keybind::KeyBind;
-use crossterm::event::KeyEvent;
-use std::fmt::Display;
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use std::fmt::Write;
 
-pub struct Handler<T: Display + Clone> {
+const BIND_SEPARATOR: &str = ", ";
+const MODIFIER_SEPARATOR: &str = "+";
+
+pub trait Action {
+    fn handle(&self) -> Option<&str>;
+}
+
+pub struct Handler<T: Action + Clone> {
     pub inputs: Vec<KeyBind<T>>,
 }
 
 impl<T> Handler<T>
 where
-    T: Display + Clone,
+    T: Action + Clone,
 {
     #[must_use]
     pub fn new(inputs: Vec<KeyBind<T>>) -> Self {
@@ -24,5 +31,116 @@ where
         }
 
         None
+    }
+
+    #[must_use]
+    pub fn render(&self) -> Vec<String> {
+        let mut actions: Vec<String> = Vec::new();
+
+        let mut binds: Vec<String> = Vec::new();
+
+        for input in &self.inputs {
+            if input.event.modifiers.contains(KeyModifiers::SHIFT) {
+                if let KeyCode::Char(_) = input.event.code {
+                    continue;
+                }
+            }
+
+            if let Some(handle) = input.action.handle() {
+                let action: String = String::from(handle);
+
+                let result = actions
+                    .iter()
+                    .position(|description| *description == action);
+
+                let mut separator = BIND_SEPARATOR;
+
+                let index = match result {
+                    Some(i) => i,
+                    #[allow(clippy::integer_arithmetic)]
+                    None => {
+                        actions.push(action.clone());
+                        binds.push(format!("{}: ", action));
+                        separator = "";
+                        actions.len() - 1
+                    }
+                };
+
+                #[allow(clippy::indexing_slicing)]
+                binds[index].push_str(
+                    format!("{}{}", separator, event_to_string(input.event).as_str()).as_str(),
+                );
+            }
+        }
+
+        binds
+    }
+}
+
+fn event_to_string(key_event: KeyEvent) -> String {
+    format!(
+        "{}{}",
+        if key_event.code == KeyCode::BackTab {
+            String::from("")
+        } else {
+            modifier_to_string(key_event.modifiers)
+        },
+        code_to_string(key_event.code)
+    )
+}
+
+#[allow(clippy::useless_let_if_seq)]
+fn modifier_to_string(modifier: KeyModifiers) -> String {
+    let mut modifier_display = String::new();
+    let mut separator = "";
+
+    if modifier.contains(KeyModifiers::CONTROL) {
+        write!(&mut modifier_display, "CTRL").expect("Could not write CTRL to modifier string");
+        separator = MODIFIER_SEPARATOR;
+    }
+
+    if modifier.contains(KeyModifiers::ALT) {
+        write!(&mut modifier_display, "{}ALT", separator)
+            .expect("Could not write ALT to modifier string");
+        separator = MODIFIER_SEPARATOR;
+    }
+
+    if modifier.contains(KeyModifiers::SHIFT) {
+        write!(&mut modifier_display, "{}SHIFT", separator)
+            .expect("Could not write SHIFT to modifier string");
+        separator = MODIFIER_SEPARATOR;
+    }
+
+    if !modifier_display.is_empty() {
+        write!(&mut modifier_display, "{}", separator)
+            .expect("Could not write separator at the end of modifier string");
+    }
+
+    modifier_display
+}
+
+fn code_to_string(code: KeyCode) -> String {
+    match code {
+        KeyCode::Backspace => String::from("Backspace"),
+        KeyCode::Enter => String::from("Enter"),
+        KeyCode::Left => String::from("Left"),
+        KeyCode::Right => String::from("Right"),
+        KeyCode::Up => String::from("Up"),
+        KeyCode::Down => String::from("Down"),
+        KeyCode::Home => String::from("Home"),
+        KeyCode::End => String::from("End"),
+        KeyCode::PageUp => String::from("PageUp"),
+        KeyCode::PageDown => String::from("PageDown"),
+        KeyCode::Tab => String::from("Tab"),
+        KeyCode::BackTab => String::from("BackTab"),
+        KeyCode::Delete => String::from("Delete"),
+        KeyCode::Insert => String::from("Insert"),
+        KeyCode::F(num) => format!("F{}", num),
+        KeyCode::Char(c) => match c {
+            ' ' => String::from("Space"),
+            _ => c.to_uppercase().to_string(),
+        },
+        KeyCode::Null => String::from("Unknown"),
+        KeyCode::Esc => String::from("Esc"),
     }
 }

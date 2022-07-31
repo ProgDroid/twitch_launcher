@@ -13,7 +13,7 @@ use crate::{
 use async_trait::async_trait;
 use choice::Choice;
 use crossterm::event::{KeyCode, KeyEvent};
-use input::{handler::Handler, keybind::KeyBind};
+use input::handler::Handler;
 use std::fmt::{Display, Formatter, Result};
 use timed_info::TimedInfo;
 use tokio::sync::mpsc::UnboundedSender;
@@ -123,10 +123,6 @@ fn new(title: String, message: String, variant: Type, callback: Option<Callback>
 
 #[async_trait]
 impl State for Popup {
-    fn keybinds(&self) -> Vec<KeyBind<Event>> {
-        self.input_handler.inputs.clone()
-    }
-
     async fn tick(&self, _: &Option<Account>, timer: u64, events: UnboundedSender<Event>) {
         if let Type::TimedInfo(popup) = &self.variant {
             if timer > popup.duration {
@@ -140,7 +136,7 @@ impl State for Popup {
             Type::Choice(choice) => render::choice(
                 theme,
                 frame,
-                &self.keybinds(),
+                &self.input_handler.render(),
                 &self.title,
                 &self.message,
                 choice.selected,
@@ -149,7 +145,7 @@ impl State for Popup {
             Type::Input(input) => render::input(
                 theme,
                 frame,
-                &self.keybinds(),
+                &self.input_handler.render(),
                 &self.title,
                 &self.message,
                 &input.input,
@@ -158,7 +154,7 @@ impl State for Popup {
             Type::TimedInfo(timed_info) => render::timed_info(
                 theme,
                 frame,
-                &self.keybinds(),
+                &self.input_handler.render(),
                 &self.title,
                 &self.message,
                 timed_info.duration,

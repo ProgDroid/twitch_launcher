@@ -6,7 +6,7 @@ use crate::{
 };
 use async_trait::async_trait;
 use crossterm::event::KeyEvent;
-use input::{handler::Handler, keybind::KeyBind};
+use input::handler::Handler;
 use tokio::sync::mpsc::UnboundedSender;
 use tui::{backend::Backend, terminal::Frame};
 use twitch::{account::Account, channel::Channel};
@@ -42,10 +42,6 @@ impl Default for Startup {
 
 #[async_trait]
 impl State for Startup {
-    fn keybinds(&self) -> Vec<KeyBind<Event>> {
-        self.input_handler.inputs.clone()
-    }
-
     async fn tick(&self, _: &Option<Account>, timer: u64, events: UnboundedSender<Event>) {
         if timer > self.duration {
             let _result = events.send(Event::Started);
@@ -109,10 +105,6 @@ impl Default for AccountMissing {
 
 #[async_trait]
 impl State for AccountMissing {
-    fn keybinds(&self) -> Vec<KeyBind<Event>> {
-        self.input_handler.inputs.clone()
-    }
-
     async fn tick(&self, _: &Option<Account>, timer: u64, events: UnboundedSender<Event>) {
         if timer > self.duration {
             let _result = events.send(Event::Exited);

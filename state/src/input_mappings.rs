@@ -80,18 +80,6 @@ fn cycle_tabs() -> Vec<KeyBind<Event>> {
 fn handle_highlights() -> Vec<KeyBind<Event>> {
     vec![
         KeyBind {
-            event: KeyEvent::new(KeyCode::Char('s'), KeyModifiers::NONE),
-            action: Event::CycleHighlight(MoveDirection::Down),
-        },
-        KeyBind {
-            event: KeyEvent::new(KeyCode::Char('S'), KeyModifiers::SHIFT),
-            action: Event::CycleHighlight(MoveDirection::Down),
-        },
-        KeyBind {
-            event: KeyEvent::new(KeyCode::Down, KeyModifiers::NONE),
-            action: Event::CycleHighlight(MoveDirection::Down),
-        },
-        KeyBind {
             event: KeyEvent::new(KeyCode::Char('w'), KeyModifiers::NONE),
             action: Event::CycleHighlight(MoveDirection::Up),
         },
@@ -103,30 +91,34 @@ fn handle_highlights() -> Vec<KeyBind<Event>> {
             event: KeyEvent::new(KeyCode::Up, KeyModifiers::NONE),
             action: Event::CycleHighlight(MoveDirection::Up),
         },
+        KeyBind {
+            event: KeyEvent::new(KeyCode::Char('s'), KeyModifiers::NONE),
+            action: Event::CycleHighlight(MoveDirection::Down),
+        },
+        KeyBind {
+            event: KeyEvent::new(KeyCode::Char('S'), KeyModifiers::SHIFT),
+            action: Event::CycleHighlight(MoveDirection::Down),
+        },
+        KeyBind {
+            event: KeyEvent::new(KeyCode::Down, KeyModifiers::NONE),
+            action: Event::CycleHighlight(MoveDirection::Down),
+        },
         // First/Last Highlight
-        KeyBind {
-            event: KeyEvent::new(KeyCode::Char('s'), KeyModifiers::CONTROL),
-            action: Event::HomeEndHighlight(MoveEnd::Last),
-        },
-        KeyBind {
-            event: KeyEvent::new(KeyCode::Char('S'), KeyModifiers::CONTROL),
-            action: Event::HomeEndHighlight(MoveEnd::Last),
-        },
-        KeyBind {
-            event: KeyEvent::new(KeyCode::Down, KeyModifiers::CONTROL),
-            action: Event::HomeEndHighlight(MoveEnd::Last),
-        },
         KeyBind {
             event: KeyEvent::new(KeyCode::Char('w'), KeyModifiers::CONTROL),
             action: Event::HomeEndHighlight(MoveEnd::First),
         },
         KeyBind {
-            event: KeyEvent::new(KeyCode::Char('W'), KeyModifiers::CONTROL),
+            event: KeyEvent::new(KeyCode::Up, KeyModifiers::CONTROL),
             action: Event::HomeEndHighlight(MoveEnd::First),
         },
         KeyBind {
-            event: KeyEvent::new(KeyCode::Up, KeyModifiers::CONTROL),
-            action: Event::HomeEndHighlight(MoveEnd::First),
+            event: KeyEvent::new(KeyCode::Char('s'), KeyModifiers::CONTROL),
+            action: Event::HomeEndHighlight(MoveEnd::Last),
+        },
+        KeyBind {
+            event: KeyEvent::new(KeyCode::Down, KeyModifiers::CONTROL),
+            action: Event::HomeEndHighlight(MoveEnd::Last),
         },
     ]
 }
@@ -147,18 +139,6 @@ fn select() -> Vec<KeyBind<Event>> {
 fn cycle_panel() -> Vec<KeyBind<Event>> {
     vec![
         KeyBind {
-            event: KeyEvent::new(KeyCode::Char('d'), KeyModifiers::NONE),
-            action: Event::CyclePanel(MoveDirection::Right),
-        },
-        KeyBind {
-            event: KeyEvent::new(KeyCode::Char('D'), KeyModifiers::SHIFT),
-            action: Event::CyclePanel(MoveDirection::Right),
-        },
-        KeyBind {
-            event: KeyEvent::new(KeyCode::Right, KeyModifiers::NONE),
-            action: Event::CyclePanel(MoveDirection::Right),
-        },
-        KeyBind {
             event: KeyEvent::new(KeyCode::Char('a'), KeyModifiers::NONE),
             action: Event::CyclePanel(MoveDirection::Left),
         },
@@ -169,6 +149,18 @@ fn cycle_panel() -> Vec<KeyBind<Event>> {
         KeyBind {
             event: KeyEvent::new(KeyCode::Left, KeyModifiers::NONE),
             action: Event::CyclePanel(MoveDirection::Left),
+        },
+        KeyBind {
+            event: KeyEvent::new(KeyCode::Char('d'), KeyModifiers::NONE),
+            action: Event::CyclePanel(MoveDirection::Right),
+        },
+        KeyBind {
+            event: KeyEvent::new(KeyCode::Char('D'), KeyModifiers::SHIFT),
+            action: Event::CyclePanel(MoveDirection::Right),
+        },
+        KeyBind {
+            event: KeyEvent::new(KeyCode::Right, KeyModifiers::NONE),
+            action: Event::CyclePanel(MoveDirection::Right),
         },
     ]
 }

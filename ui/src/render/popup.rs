@@ -2,8 +2,6 @@ use crate::{
     render::common::{generate_background_widget, generate_keys_widget, generate_search_box},
     theme::{Elevation, Theme},
 };
-use input::keybind::KeyBind;
-use std::fmt::Display;
 use tui::{
     backend::Backend,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
@@ -13,13 +11,15 @@ use tui::{
     widgets::{Block, Borders, Gauge, List, ListItem, ListState, Paragraph},
 };
 
+// TODO allow cancelling choice/input popup
+
 pub const POPUP_PERCENTAGE_X: u16 = 60;
 pub const POPUP_PERCENTAGE_Y: u16 = 20;
 
-pub fn choice<B: Backend, T: Display + Clone>(
+pub fn choice<B: Backend>(
     theme: &Theme,
     frame: &mut Frame<'_, B>,
-    keybinds: &[KeyBind<T>],
+    keybinds: &[String],
     title: &str,
     message: &str,
     selected: usize,
@@ -44,10 +44,10 @@ pub fn choice<B: Backend, T: Display + Clone>(
     );
 }
 
-pub fn input<B: Backend, T: Display + Clone>(
+pub fn input<B: Backend>(
     theme: &Theme,
     frame: &mut Frame<'_, B>,
-    keybinds: &[KeyBind<T>],
+    keybinds: &[String],
     title: &str,
     message: &str,
     input: &[char],
@@ -75,10 +75,10 @@ pub fn input<B: Backend, T: Display + Clone>(
     );
 }
 
-pub fn timed_info<B: Backend, T: Display + Clone>(
+pub fn timed_info<B: Backend>(
     theme: &Theme,
     frame: &mut Frame<'_, B>,
-    keybinds: &[KeyBind<T>],
+    keybinds: &[String],
     title: &str,
     message: &str,
     duration: u64,
@@ -101,10 +101,10 @@ pub fn timed_info<B: Backend, T: Display + Clone>(
 
 #[allow(clippy::indexing_slicing)]
 #[must_use]
-fn popup<B: Backend, T: Display + Clone>(
+fn popup<B: Backend>(
     theme: &Theme,
     frame: &mut Frame<'_, B>,
-    keybinds: &[KeyBind<T>],
+    keybinds: &[String],
     title: &str,
     message: &str,
     layout_function: fn(Rect) -> Vec<Rect>,

@@ -6,9 +6,7 @@ use crate::{
     },
     theme::{Elevation, Theme},
 };
-use input::keybind::KeyBind;
 use std::cmp::{max, min};
-use std::fmt::Display;
 use tui::{
     backend::Backend,
     layout::{Constraint, Direction, Layout, Rect},
@@ -24,7 +22,7 @@ use twitch::channel::{status::Status, Channel};
     clippy::indexing_slicing,
     clippy::too_many_arguments
 )]
-pub fn home<B: Backend, T: Display + Clone>(
+pub fn home<B: Backend>(
     theme: &Theme,
     frame: &mut Frame<'_, B>,
     channel_highlight: &usize,
@@ -32,7 +30,7 @@ pub fn home<B: Backend, T: Display + Clone>(
     typing: bool,
     search_input: &[char],
     focused_panel: &Home,
-    keybinds: &[KeyBind<T>],
+    keybinds: &[String],
 ) {
     let area = frame.size();
 

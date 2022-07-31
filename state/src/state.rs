@@ -10,7 +10,6 @@ use crate::{
 };
 use async_trait::async_trait;
 use crossterm::event::KeyEvent;
-use input::keybind::KeyBind;
 use std::fmt::{Display, Formatter, Result};
 use tokio::sync::mpsc::UnboundedSender;
 use tui::{backend::Backend, terminal::Frame};
@@ -19,8 +18,6 @@ use ui::theme::Theme;
 
 #[async_trait]
 pub trait State {
-    fn keybinds(&self) -> Vec<KeyBind<Event>>;
-
     async fn tick(&self, account: &Option<Account>, timer: u64, events: UnboundedSender<Event>);
 
     fn render<B: Backend>(&self, theme: &Theme, frame: &mut Frame<'_, B>, timer: u64);

@@ -1,3 +1,4 @@
+use input::handler::Action;
 use std::fmt::{Display, Formatter, Result};
 use ui::theme::Theme;
 
@@ -13,5 +14,11 @@ impl Display for Event {
             Self::Exit => write!(f, "Exit App"),
             Self::SetTheme(_) => write!(f, "Set Theme"),
         }
+    }
+}
+
+impl Action for Event {
+    fn handle(&self) -> Option<&str> {
+        None
     }
 }

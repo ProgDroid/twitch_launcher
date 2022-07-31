@@ -26,6 +26,7 @@ dependencies = [
 name = "app_event"
 version = "0.1.0"
 dependencies = [
+ "input",
  "twitch",
  "ui",
 ]
