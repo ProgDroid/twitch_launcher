@@ -238,10 +238,11 @@ impl State for Home {
                     _ => self.channel_highlight,
                 };
             }
+            #[allow(clippy::integer_arithmetic)]
             Event::HomeEndHighlight(end) => {
                 self.channel_highlight = match end {
                     MoveEnd::First => 0,
-                    MoveEnd::Last => self.favourites.len(),
+                    MoveEnd::Last => self.favourites.len() - 1,
                 };
             }
             Event::Selected => match self.focused_panel {

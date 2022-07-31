@@ -206,11 +206,12 @@ impl State for Popup {
                 }
                 Type::Input(_) | Type::TimedInfo(_) => {}
             },
+            #[allow(clippy::integer_arithmetic)]
             Event::HomeEndHighlight(end) => match self.variant {
                 Type::Choice(ref mut popup) => {
                     popup.selected = match end {
                         MoveEnd::First => 0,
-                        MoveEnd::Last => popup.options.len(),
+                        MoveEnd::Last => popup.options.len() - 1,
                     };
                 }
                 Type::Input(_) | Type::TimedInfo(_) => {}
