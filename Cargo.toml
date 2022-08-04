@@ -8,22 +8,30 @@ repository = "https://github.com/ProgDroid/twitch_launcher"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[[bin]]
+name = "twitch_launcher"
+path = "launcher/src/main.rs"
+
+[workspace]
+members = [
+    "app_event",
+    "input",
+    "launcher",
+    "state",
+    "twitch",
+    "ui",
+]
+
 [dependencies]
-async-trait = "0.1"
 crossterm = "0.23"
-num = "0.4"
-reqwest = "0.11"
-serde_json = "1.0"
 tui = "0.18.0"
 
-[dependencies.serde]
-version = "1.0"
-features = ["derive"]
+app_event = { path = "app_event" }
+input = { path = "input" }
+state = { path = "state" }
+twitch = { path = "twitch" }
+ui = { path = "ui" }
 
 [dependencies.tokio]
 version = "1.17"
 features = ["full"]
-
-[dependencies.twitch_api2]
-version = "0.6.1"
-features = ["twitch_oauth2", "helix", "client", "reqwest"]

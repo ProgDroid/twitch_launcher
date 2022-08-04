@@ -23,6 +23,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "app_event"
+version = "0.1.0"
+dependencies = [
+ "input",
+ "twitch",
+ "ui",
+]
+
+[[package]]
 name = "async-trait"
 version = "0.1.53"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -409,6 +418,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "input"
+version = "0.1.0"
+dependencies = [
+ "crossterm",
+]
+
+[[package]]
 name = "instant"
 version = "0.1.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -436,6 +452,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "671a26f820db17c2a2750743f1dd03bafd15b98c9f30c7c2628c024c05d73397"
 dependencies = [
  "wasm-bindgen",
+]
+
+[[package]]
+name = "launcher"
+version = "0.1.0"
+dependencies = [
+ "app_event",
+ "crossterm",
+ "input",
+ "state",
+ "tokio",
+ "tui",
+ "twitch",
+ "ui",
 ]
 
 [[package]]
@@ -544,9 +574,9 @@ dependencies = [
 
 [[package]]
 name = "num-complex"
-version = "0.4.1"
+version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "97fbc387afefefd5e9e39493299f3069e14a140dd34dc19b4c1c1a8fddb6a790"
+checksum = "7ae39348c8bc5fbd7f40c727a9925f03517afd2ab27d46702108b6a7e5414c19"
 dependencies = [
  "num-traits",
 ]
@@ -574,9 +604,9 @@ dependencies = [
 
 [[package]]
 name = "num-rational"
-version = "0.4.0"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d41702bd167c2df5520b384281bc111a4b5efcf7fbc4c9c222c815b07e0a6a6a"
+checksum = "0638a1c9d0a3c0914158145bc76cff373a75a627e6ecbfb71cbe6f453a5a19b0"
 dependencies = [
  "autocfg",
  "num-bigint",
@@ -970,6 +1000,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "state"
+version = "0.1.0"
+dependencies = [
+ "app_event",
+ "async-trait",
+ "crossterm",
+ "input",
+ "tokio",
+ "tui",
+ "twitch",
+ "ui",
+]
+
+[[package]]
 name = "syn"
 version = "1.0.93"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1051,9 +1095,9 @@ dependencies = [
 
 [[package]]
 name = "tokio-macros"
-version = "1.7.0"
+version = "1.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b557f72f448c511a979e2564e55d74e6c4432fc96ff4f6241bc6bded342643b7"
+checksum = "9724f9a975fb987ef7a3cd9be0350edcbe130698af5b8f7a631e23d42d052484"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1142,6 +1186,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "twitch"
+version = "0.1.0"
+dependencies = [
+ "reqwest",
+ "serde",
+ "serde_json",
+ "tokio",
+ "twitch_api2",
+]
+
+[[package]]
 name = "twitch_api2"
 version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1171,15 +1226,14 @@ dependencies = [
 name = "twitch_launcher"
 version = "0.3.0"
 dependencies = [
- "async-trait",
+ "app_event",
  "crossterm",
- "num",
- "reqwest",
- "serde",
- "serde_json",
+ "input",
+ "state",
  "tokio",
  "tui",
- "twitch_api2",
+ "twitch",
+ "ui",
 ]
 
 [[package]]
@@ -1211,6 +1265,16 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "ui"
+version = "0.1.0"
+dependencies = [
+ "input",
+ "num",
+ "tui",
+ "twitch",
 ]
 
 [[package]]

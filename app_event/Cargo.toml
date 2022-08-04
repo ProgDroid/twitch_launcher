@@ -1,0 +1,11 @@
+[package]
+name = "app_event"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+input = { path = "../input" }
+twitch = { path = "../twitch" }
+ui = { path = "../ui" }
