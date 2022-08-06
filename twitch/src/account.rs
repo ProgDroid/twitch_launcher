@@ -18,7 +18,7 @@ pub struct Account {
     refresh_token: Secret,
 }
 
-// TODO add README
+// TODO Allow authing on first run
 
 impl Account {
     pub async fn load() -> Result<Self> {

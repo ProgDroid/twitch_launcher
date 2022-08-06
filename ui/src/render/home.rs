@@ -17,6 +17,8 @@ use tui::{
 };
 use twitch::channel::{status::Status, Channel};
 
+// TODO if favourites file doesn't exist, nothing works. This shouldn't happen
+
 #[allow(
     clippy::trivially_copy_pass_by_ref,
     clippy::indexing_slicing,
