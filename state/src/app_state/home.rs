@@ -226,20 +226,26 @@ impl State for Home {
                 let _result = tx.send(action);
             }
             Event::CycleHighlight(direction) => {
-                self.channel_highlight = match direction {
-                    MoveDirection::Down => index_add(self.channel_highlight, self.favourites.len()),
-                    MoveDirection::Up => {
-                        index_subtract(self.channel_highlight, self.favourites.len())
-                    }
-                    _ => self.channel_highlight,
-                };
+                if self.focused_panel == HomePanel::Favourites {
+                    self.channel_highlight = match direction {
+                        MoveDirection::Down => {
+                            index_add(self.channel_highlight, self.favourites.len())
+                        }
+                        MoveDirection::Up => {
+                            index_subtract(self.channel_highlight, self.favourites.len())
+                        }
+                        _ => self.channel_highlight,
+                    };
+                }
             }
             #[allow(clippy::integer_arithmetic)]
             Event::HomeEndHighlight(end) => {
-                self.channel_highlight = match end {
-                    MoveEnd::First => 0,
-                    MoveEnd::Last => self.favourites.len() - 1,
-                };
+                if self.focused_panel == HomePanel::Favourites {
+                    self.channel_highlight = match end {
+                        MoveEnd::First => 0,
+                        MoveEnd::Last => self.favourites.len() - 1,
+                    };
+                }
             }
             Event::Selected => match self.focused_panel {
                 HomePanel::Favourites => {
