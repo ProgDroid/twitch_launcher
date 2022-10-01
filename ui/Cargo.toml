@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 num = "0.4"
-tui = "0.18.0"
+tui = "0.19.0"
 
 input = { path = "../input" }
 twitch = { path = "../twitch" }

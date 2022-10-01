@@ -235,9 +235,13 @@ impl State for Popup {
             },
             Event::Submit => match self.variant {
                 Type::Input(ref mut popup) => {
-                    let _result = tx.send(Event::PopupEnded);
-
                     let input: String = popup.input.iter().collect();
+
+                    if input.is_empty() {
+                        return;
+                    }
+
+                    let _result = tx.send(Event::PopupEnded);
 
                     if let Some(func) = self.callback {
                         func(tx, &Output::Input(input));
@@ -257,6 +261,16 @@ impl State for Popup {
                 }
                 Type::Choice(_) | Type::TimedInfo(_) => {}
             },
+            Event::Paste => match self.variant {
+                Type::Input(ref mut popup) => {
+                    if let Ok(to_paste) = terminal_clipboard::get_string() {
+                        for c in to_paste.chars() {
+                            popup.input.push(c);
+                        }
+                    }
+                }
+                Type::Choice(_) | Type::TimedInfo(_) => {}
+            },
             _ => {}
         }
     }
@@ -271,5 +285,17 @@ pub fn chat_choice(tx: &UnboundedSender<Event>, output: &Output) {
 pub fn chat_choice_search(tx: &UnboundedSender<Event>, output: &Output) {
     if let Output::Index(choice) = output {
         let _result = tx.send(Event::ChatChoiceSearch(*choice));
+    }
+}
+
+pub fn client_id_submit(tx: &UnboundedSender<Event>, output: &Output) {
+    if let Output::Input(input) = output {
+        let _result = tx.send(Event::SetClientId(input.clone()));
+    }
+}
+
+pub fn client_secret_submit(tx: &UnboundedSender<Event>, output: &Output) {
+    if let Output::Input(input) = output {
+        let _result = tx.send(Event::SetClientSecret(input.clone()));
     }
 }

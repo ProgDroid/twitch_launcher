@@ -23,8 +23,8 @@ members = [
 ]
 
 [dependencies]
-crossterm = "0.23"
-tui = "0.18.0"
+crossterm = "0.25"
+tui = "0.19.0"
 
 app_event = { path = "app_event" }
 input = { path = "input" }

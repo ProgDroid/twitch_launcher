@@ -31,6 +31,10 @@ pub fn typing_inputs() -> Vec<KeyBind<Event>> {
             event: KeyEvent::new(KeyCode::Backspace, KeyModifiers::NONE),
             action: Event::DeleteChar,
         },
+        KeyBind {
+            event: KeyEvent::new(KeyCode::Char('v'), KeyModifiers::CONTROL),
+            action: Event::Paste,
+        },
     ]
 }
 

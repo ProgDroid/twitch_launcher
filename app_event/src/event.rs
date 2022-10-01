@@ -1,11 +1,13 @@
 use input::handler::Action;
 use std::fmt::{Display, Formatter, Result};
+use twitch::account::Account;
 use ui::theme::Theme;
 
 #[derive(Clone)]
 pub enum Event {
     Exit,
     SetTheme(Theme),
+    SetAccount(Account),
 }
 
 impl Display for Event {
@@ -13,6 +15,7 @@ impl Display for Event {
         match *self {
             Self::Exit => write!(f, "Exit App"),
             Self::SetTheme(_) => write!(f, "Set Theme"),
+            Self::SetAccount(_) => write!(f, "Set Account"),
         }
     }
 }

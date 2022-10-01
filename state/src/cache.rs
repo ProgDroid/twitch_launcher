@@ -48,7 +48,11 @@ impl Cache {
             match state {
                 AppState::AccountMissing(s) => {
                     return Some(AppState::AccountMissing(AccountMissing::new(
-                        s.timer, s.duration,
+                        s.timer,
+                        s.duration,
+                        s.callback,
+                        s.client_id.clone(),
+                        s.client_secret.clone(),
                     )));
                 }
                 AppState::Startup(s) => {

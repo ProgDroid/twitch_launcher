@@ -35,6 +35,9 @@ impl Handler {
                         CrosstermEvent::Key(e) => sender.send(Event::Key(e)),
                         CrosstermEvent::Mouse(e) => sender.send(Event::Mouse(e)),
                         CrosstermEvent::Resize(w, h) => sender.send(Event::Resize(w, h)),
+                        CrosstermEvent::FocusGained
+                        | CrosstermEvent::FocusLost
+                        | CrosstermEvent::Paste(_) => Ok(()), // TODO use this
                     };
 
                     if result.is_err() {
