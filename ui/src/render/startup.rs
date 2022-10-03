@@ -54,7 +54,7 @@ pub fn account_missing<B: Backend>(theme: &Theme, frame: &mut Frame<'_, B>, time
 
     frame.render_widget(
         Paragraph::new(format!(
-            "Account not configured, please enter Client ID and Secret when prompted{}",
+            "Account not configured, please enter your details when prompted{}",
             animate_ellipsis(timer)
         ))
         .block(Block::default().style(Style::default()))

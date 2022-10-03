@@ -50,9 +50,7 @@ impl Cache {
                     return Some(AppState::AccountMissing(AccountMissing::new(
                         s.timer,
                         s.duration,
-                        s.callback,
-                        s.client_id.clone(),
-                        s.client_secret.clone(),
+                        s.account_config.clone(),
                     )));
                 }
                 AppState::Startup(s) => {

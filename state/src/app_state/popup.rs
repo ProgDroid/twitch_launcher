@@ -288,6 +288,18 @@ pub fn chat_choice_search(tx: &UnboundedSender<Event>, output: &Output) {
     }
 }
 
+pub fn username_submit(tx: &UnboundedSender<Event>, output: &Output) {
+    if let Output::Input(input) = output {
+        let _result = tx.send(Event::SetUser(input.clone()));
+    }
+}
+
+pub fn user_id_submit(tx: &UnboundedSender<Event>, output: &Output) {
+    if let Output::Input(input) = output {
+        let _result = tx.send(Event::SetUserId(input.clone()));
+    }
+}
+
 pub fn client_id_submit(tx: &UnboundedSender<Event>, output: &Output) {
     if let Output::Input(input) = output {
         let _result = tx.send(Event::SetClientId(input.clone()));
@@ -297,5 +309,14 @@ pub fn client_id_submit(tx: &UnboundedSender<Event>, output: &Output) {
 pub fn client_secret_submit(tx: &UnboundedSender<Event>, output: &Output) {
     if let Output::Input(input) = output {
         let _result = tx.send(Event::SetClientSecret(input.clone()));
+    }
+}
+
+#[allow(clippy::expect_used)]
+pub fn redirect_url_port_submit(tx: &UnboundedSender<Event>, output: &Output) {
+    if let Output::Input(input) = output {
+        let _result = tx.send(Event::SetRedirectUrlPort(
+            input.parse().expect("Could not parse port"),
+        ));
     }
 }

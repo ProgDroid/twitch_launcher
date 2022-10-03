@@ -17,6 +17,7 @@ members = [
     "app_event",
     "input",
     "launcher",
+    "server",
     "state",
     "twitch",
     "ui",
