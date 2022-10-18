@@ -20,11 +20,16 @@ pub struct StateMachine {
     events_sender: UnboundedSender<Event>,
     app_events: UnboundedSender<AppEvent>,
     timer: u64,
+    paste_receiver: UnboundedReceiver<String>,
 }
 
 impl StateMachine {
     #[must_use]
-    pub fn new(account_loaded: bool, app_events: UnboundedSender<AppEvent>) -> Self {
+    pub fn new(
+        account_loaded: bool,
+        app_events: UnboundedSender<AppEvent>,
+        paste_receiver: UnboundedReceiver<String>,
+    ) -> Self {
         let (sender, receiver) = unbounded_channel();
 
         Self {
@@ -39,6 +44,7 @@ impl StateMachine {
             events_sender: sender,
             app_events,
             timer: 0,
+            paste_receiver,
         }
     }
 
@@ -108,6 +114,10 @@ impl StateMachine {
     }
 
     pub fn receive(&mut self) {
+        if let Ok(content) = self.paste_receiver.try_recv() {
+            let _result = self.events_sender.send(Event::Paste(content));
+        }
+
         self.state.receive();
     }
 }

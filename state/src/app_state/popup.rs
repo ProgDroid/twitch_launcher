@@ -261,12 +261,10 @@ impl State for Popup {
                 }
                 Type::Choice(_) | Type::TimedInfo(_) => {}
             },
-            Event::Paste => match self.variant {
+            Event::Paste(to_paste) => match self.variant {
                 Type::Input(ref mut popup) => {
-                    if let Ok(to_paste) = terminal_clipboard::get_string() {
-                        for c in to_paste.chars() {
-                            popup.input.push(c);
-                        }
+                    for c in to_paste.chars() {
+                        popup.input.push(c);
                     }
                 }
                 Type::Choice(_) | Type::TimedInfo(_) => {}

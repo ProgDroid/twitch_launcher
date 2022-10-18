@@ -5,11 +5,12 @@ use tokio::{
     sync::mpsc::{unbounded_channel, UnboundedReceiver},
 };
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub enum Event {
     Tick,
     Key(KeyEvent),
     Mouse(MouseEvent),
+    Paste(String),
     Resize(u16, u16),
 }
 
@@ -35,9 +36,8 @@ impl Handler {
                         CrosstermEvent::Key(e) => sender.send(Event::Key(e)),
                         CrosstermEvent::Mouse(e) => sender.send(Event::Mouse(e)),
                         CrosstermEvent::Resize(w, h) => sender.send(Event::Resize(w, h)),
-                        CrosstermEvent::FocusGained
-                        | CrosstermEvent::FocusLost
-                        | CrosstermEvent::Paste(_) => Ok(()), // TODO use this
+                        CrosstermEvent::Paste(content) => sender.send(Event::Paste(content)),
+                        CrosstermEvent::FocusGained | CrosstermEvent::FocusLost => Ok(()),
                     };
 
                     if result.is_err() {

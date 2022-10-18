@@ -1,7 +1,7 @@
 use crate::app::App;
 use crate::terminal::event::Handler;
 use crossterm::{
-    event::{DisableMouseCapture, EnableMouseCapture},
+    event::{DisableBracketedPaste, DisableMouseCapture, EnableBracketedPaste, EnableMouseCapture},
     terminal::{self, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use std::io;
@@ -22,7 +22,12 @@ impl<B: Backend> Tui<B> {
 
     pub fn init(&mut self) -> Result<(), std::io::Error> {
         terminal::enable_raw_mode()?;
-        crossterm::execute!(io::stderr(), EnterAlternateScreen, EnableMouseCapture)?;
+        crossterm::execute!(
+            io::stdout(),
+            EnterAlternateScreen,
+            EnableMouseCapture,
+            EnableBracketedPaste
+        )?;
         self.terminal.hide_cursor()?;
         self.terminal.clear()?;
         Ok(())
@@ -35,7 +40,12 @@ impl<B: Backend> Tui<B> {
 
     pub fn exit(&mut self) -> Result<(), std::io::Error> {
         terminal::disable_raw_mode()?;
-        crossterm::execute!(io::stderr(), LeaveAlternateScreen, DisableMouseCapture)?;
+        crossterm::execute!(
+            io::stdout(),
+            LeaveAlternateScreen,
+            DisableMouseCapture,
+            DisableBracketedPaste
+        )?;
         self.terminal.show_cursor()?;
         Ok(())
     }

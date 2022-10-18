@@ -33,7 +33,7 @@ pub enum Event {
     SetClientId(String),
     SetClientSecret(String),
     SetRedirectUrlPort(u16),
-    Paste,
+    Paste(String),
 }
 
 impl Display for Event {
@@ -69,7 +69,7 @@ impl Display for Event {
             Self::SetClientId(_) => write!(f, "Set Client ID"),
             Self::SetClientSecret(_) => write!(f, "Set Client Secret"),
             Self::SetRedirectUrlPort(_) => write!(f, "Set Redirect URL Port"),
-            Self::Paste => write!(f, "Pasted"),
+            Self::Paste(_) => write!(f, "Pasted"),
         }
     }
 }
