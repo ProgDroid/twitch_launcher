@@ -70,7 +70,7 @@ pub fn generate_title<'a>(
     let mut block_style = Style::default().bg(bg_colour);
 
     if !focused {
-        block_style = block_style.add_modifier(Modifier::DIM);
+        block_style = block_style.add_modifier(Modifier::DIM); // TODO doesn't work on linux?
     }
 
     Paragraph::new(vec![

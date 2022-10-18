@@ -32,10 +32,7 @@ async fn main() -> Result<(), std::io::Error> {
         match tui.events.next().await {
             Some(Event::Tick) => app.tick().await,
             Some(Event::Key(key_event)) => app.handle_input(key_event),
-            Some(Event::Paste(content)) => {
-                println!("PASTED");
-                app.handle_paste(content);
-            }
+            Some(Event::Paste(content)) => app.handle_paste(content),
             Some(Event::Mouse(_) | Event::Resize(_, _)) | None => {}
         }
     }
