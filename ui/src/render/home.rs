@@ -1,7 +1,7 @@
 use crate::{
     panel::Home,
     render::common::{
-        generate_app_layout, generate_background_widget, generate_keys_widget, generate_search_box,
+        generate_app_layout, generate_background_widget, generate_input_box, generate_keys_widget,
         generate_tabs_widget, generate_title, HORIZONTAL_MARGIN, VERTICAL_MARGIN,
     },
     theme::{Elevation, Theme},
@@ -89,7 +89,7 @@ pub fn home<B: Backend>(
     let search_chunks = generate_search_layout(search_chunks_with_margin[1]);
 
     frame.render_widget(
-        generate_search_box(
+        generate_input_box(
             theme,
             search_input,
             typing,

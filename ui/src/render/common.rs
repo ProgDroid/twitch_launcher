@@ -91,15 +91,15 @@ pub fn generate_title<'a>(
 }
 
 #[allow(clippy::trivially_copy_pass_by_ref)]
-pub fn generate_search_box<'a>(
+pub fn generate_input_box<'a>(
     theme: &Theme,
-    search_input: &[char],
+    input: &[char],
     typing: bool,
     focused: bool,
     title: String,
     background: Color,
 ) -> Paragraph<'a> {
-    let input_string: String = search_input.iter().collect();
+    let input_string: String = input.iter().collect();
 
     let mut block_style = Style::default().bg(background);
 

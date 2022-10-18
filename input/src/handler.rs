@@ -142,5 +142,14 @@ fn code_to_string(code: KeyCode) -> String {
         },
         KeyCode::Null => String::from("Unknown"),
         KeyCode::Esc => String::from("Esc"),
+        KeyCode::CapsLock => String::from("Caps Lock"),
+        KeyCode::ScrollLock => String::from("Scroll Lock"),
+        KeyCode::NumLock => String::from("Num Lock"),
+        KeyCode::PrintScreen => String::from("Print Screen"),
+        KeyCode::Menu => String::from("Menu"),
+        KeyCode::Pause => String::from("Pause"),
+        KeyCode::KeypadBegin => String::from("Keypad Begin"),
+        KeyCode::Media(media) => format!("Media {:?}", media),
+        KeyCode::Modifier(modifier) => format!("Modifier {:?}", modifier),
     }
 }

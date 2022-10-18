@@ -7,8 +7,9 @@ edition = "2021"
 
 [dependencies]
 async-trait = "0.1"
-crossterm = "0.23"
-tui = "0.18.0"
+crossterm = "0.25"
+terminal-clipboard = "0.3"
+tui = "0.19.0"
 
 app_event = { path = "../app_event" }
 input = { path = "../input" }

@@ -45,6 +45,7 @@ impl App {
             match event {
                 Event::Exit => self.running = false,
                 Event::SetTheme(theme) => self.theme = theme,
+                Event::SetAccount(account) => self.account = Some(account),
             }
         }
     }
@@ -57,7 +58,7 @@ impl App {
         if let Some(event) = self.input_handler.handle(key_event) {
             match event {
                 Event::Exit => self.running = false,
-                Event::SetTheme(_) => {}
+                Event::SetTheme(_) | Event::SetAccount(_) => {}
             }
         }
 

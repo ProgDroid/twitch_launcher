@@ -1,5 +1,5 @@
 use crate::{
-    render::common::{generate_background_widget, generate_keys_widget, generate_search_box},
+    render::common::{generate_background_widget, generate_input_box, generate_keys_widget},
     theme::{Elevation, Theme},
 };
 use tui::{
@@ -63,7 +63,7 @@ pub fn input<B: Backend>(
     );
 
     frame.render_widget(
-        generate_search_box(
+        generate_input_box(
             theme,
             input,
             typing,

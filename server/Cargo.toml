@@ -1,13 +1,10 @@
 [package]
-name = "ui"
+name = "server"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-num = "0.4"
-tui = "0.19.0"
-
-input = { path = "../input" }
-twitch = { path = "../twitch" }
+anyhow = "1.0"
+url = "2.2"

@@ -58,6 +58,11 @@ impl StateMachine {
                 Event::Exited => {
                     let _result = self.app_events.send(AppEvent::Exit);
                 }
+                Event::AccountConfigured(new_account) => {
+                    let _result = self
+                        .app_events
+                        .send(AppEvent::SetAccount(new_account.clone()));
+                }
                 _ => {}
             }
 

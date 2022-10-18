@@ -1,16 +1,17 @@
 {
-  "username": "<twitch_username>",
-  "user_id": "<twitch_user_id",
+  "username": "",
+  "user_id": "",
   "client_id": {
-    "secret_string": "twitch_client_id"
+    "secret_string": ""
   },
   "client_secret": {
-    "secret_string": "twitch_client_secret"
+    "secret_string": ""
   },
   "user_access_token": {
     "secret_string": ""
   },
   "refresh_token": {
     "secret_string": ""
-  }
+  },
+  "redirect_url_port": 3000
 }

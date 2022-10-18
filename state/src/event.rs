@@ -4,7 +4,7 @@ use crate::{
 };
 use input::handler::Action;
 use std::fmt::{Display, Formatter, Result};
-use twitch::channel::Channel;
+use twitch::{account::Account, channel::Channel};
 
 #[derive(Clone)]
 pub enum Event {
@@ -27,6 +27,13 @@ pub enum Event {
     Submit,
     DeleteChar,
     Typed(char),
+    AccountConfigured(Account),
+    SetUser(String),
+    SetUserId(String),
+    SetClientId(String),
+    SetClientSecret(String),
+    SetRedirectUrlPort(u16),
+    Paste,
 }
 
 impl Display for Event {
@@ -56,6 +63,13 @@ impl Display for Event {
             Self::Submit => write!(f, "Submit"),
             Self::DeleteChar => write!(f, "Delete Char"),
             Self::Typed(char) => write!(f, "Typed {}", char),
+            Self::AccountConfigured(_) => write!(f, "Account Configured"),
+            Self::SetUser(_) => write!(f, "Set User"),
+            Self::SetUserId(_) => write!(f, "Set User ID"),
+            Self::SetClientId(_) => write!(f, "Set Client ID"),
+            Self::SetClientSecret(_) => write!(f, "Set Client Secret"),
+            Self::SetRedirectUrlPort(_) => write!(f, "Set Redirect URL Port"),
+            Self::Paste => write!(f, "Pasted"),
         }
     }
 }
