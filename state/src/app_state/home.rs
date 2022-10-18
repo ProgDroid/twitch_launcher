@@ -12,7 +12,6 @@ use crate::{
 use async_trait::async_trait;
 use crossterm::event::{KeyCode, KeyEvent};
 use input::handler::Handler;
-use terminal_clipboard;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 use tui::{backend::Backend, terminal::Frame};
 use twitch::{
@@ -283,11 +282,9 @@ impl State for Home {
             Event::Typed(char) => {
                 self.search_input.push(char);
             }
-            Event::Paste => {
-                if let Ok(to_paste) = terminal_clipboard::get_string() {
-                    for c in to_paste.chars() {
-                        self.search_input.push(c);
-                    }
+            Event::Paste(to_paste) => {
+                for c in to_paste.chars() {
+                    self.search_input.push(c);
                 }
             }
             _ => {}

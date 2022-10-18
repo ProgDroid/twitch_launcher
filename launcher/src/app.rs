@@ -3,7 +3,7 @@ use app_event::event::Event;
 use crossterm::event::KeyEvent;
 use input::handler::Handler;
 use state::state_machine::StateMachine;
-use tokio::sync::mpsc::{self, UnboundedReceiver};
+use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 use tui::{backend::Backend, terminal::Frame};
 use twitch::account::Account;
 use ui::theme::Theme;
@@ -15,6 +15,7 @@ pub struct App {
     events: UnboundedReceiver<Event>,
     input_handler: Handler<Event>,
     account: Option<Account>,
+    paste_sender: UnboundedSender<String>,
 }
 
 impl App {
@@ -26,15 +27,18 @@ impl App {
 
         let (sender, receiver) = mpsc::unbounded_channel();
 
+        let (paste_sender, paste_receiver) = mpsc::unbounded_channel();
+
         // TODO load inputs
 
         Self {
             running: true,
             theme: Theme::default(),
-            state: StateMachine::new(account.is_some(), sender),
+            state: StateMachine::new(account.is_some(), sender, paste_receiver),
             events: receiver,
             input_handler: Handler::new(app_inputs()),
             account,
+            paste_sender,
         }
     }
 
@@ -63,6 +67,14 @@ impl App {
         }
 
         self.state.handle(key_event);
+    }
+
+    pub fn handle_paste(&mut self, content: String) {
+        if content.trim().is_empty() {
+            return;
+        }
+
+        let _result = self.paste_sender.send(content);
     }
 
     pub fn receive(&mut self) {

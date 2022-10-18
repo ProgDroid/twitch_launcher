@@ -22,7 +22,7 @@ impl<B: Backend> Tui<B> {
 
     pub fn init(&mut self) -> Result<(), std::io::Error> {
         terminal::enable_raw_mode()?;
-        crossterm::execute!(io::stderr(), EnterAlternateScreen, EnableMouseCapture)?;
+        crossterm::execute!(io::stdout(), EnterAlternateScreen, EnableMouseCapture)?;
         self.terminal.hide_cursor()?;
         self.terminal.clear()?;
         Ok(())
@@ -35,7 +35,7 @@ impl<B: Backend> Tui<B> {
 
     pub fn exit(&mut self) -> Result<(), std::io::Error> {
         terminal::disable_raw_mode()?;
-        crossterm::execute!(io::stderr(), LeaveAlternateScreen, DisableMouseCapture)?;
+        crossterm::execute!(io::stdout(), LeaveAlternateScreen, DisableMouseCapture)?;
         self.terminal.show_cursor()?;
         Ok(())
     }
