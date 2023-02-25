@@ -16,7 +16,9 @@ impl Exit {
 
 #[async_trait]
 impl State for Exit {
-    async fn tick(&self, _: &Option<Account>, _: u64, _: UnboundedSender<Event>) {}
+    async fn tick(&self, _: &Option<Account>, _: u64, tx: UnboundedSender<Event>) {
+        let _result = tx.send(Event::Exited);
+    }
 
     fn render<B: Backend>(&self, _: &Theme, _: &mut Frame<'_, B>, _: u64) {}
 
