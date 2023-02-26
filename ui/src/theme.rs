@@ -31,10 +31,8 @@ impl CustomColour {
     #[must_use]
     #[allow(
         clippy::use_self,
-        clippy::as_conversions,
         clippy::cast_possible_truncation,
-        clippy::cast_sign_loss,
-        clippy::float_arithmetic
+        clippy::cast_sign_loss
     )]
     pub fn blend(&self, color: &CustomColour, factor: f32) -> Self {
         Self {
@@ -209,11 +207,7 @@ impl Default for Theme {
 }
 
 impl Theme {
-    #[allow(
-        clippy::needless_arbitrary_self_type,
-        clippy::indexing_slicing,
-        clippy::as_conversions
-    )]
+    #[allow(clippy::needless_arbitrary_self_type)]
     #[must_use]
     pub fn elevation(self: &Self, level: Elevation) -> CustomColour {
         self.background.blend(&WHITE, ELEVATION[level as usize])

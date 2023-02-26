@@ -1,6 +1,6 @@
 [package]
 name = "twitch"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -17,10 +17,10 @@ server = { path = "../server" }
 version = "1.0"
 features = ["derive"]
 
-[dependencies.twitch_api2]
-version = "0.6.1"
+[dependencies.twitch_api]
+version = "0.7.0-rc.4"
 features = ["twitch_oauth2", "helix", "client", "reqwest"]
 
 [dependencies.tokio]
-version = "1.17"
+version = "1.25"
 features = ["full"]

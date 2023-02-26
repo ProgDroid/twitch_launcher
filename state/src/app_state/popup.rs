@@ -33,9 +33,9 @@ pub enum Type {
 impl Display for Type {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match *self {
-            Type::Choice(_) => write!(f, "Choice"),
-            Type::Input(_) => write!(f, "Input"),
-            Type::TimedInfo(_) => write!(f, "Timed Info"),
+            Self::Choice(_) => write!(f, "Choice"),
+            Self::Input(_) => write!(f, "Input"),
+            Self::TimedInfo(_) => write!(f, "Timed Info"),
         }
     }
 }
@@ -202,7 +202,6 @@ impl State for Popup {
                 }
                 Type::Input(_) | Type::TimedInfo(_) => {}
             },
-            #[allow(clippy::integer_arithmetic)]
             Event::HomeEndHighlight(end) => match self.variant {
                 Type::Choice(ref mut popup) => {
                     popup.selected = match end {

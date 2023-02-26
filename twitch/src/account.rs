@@ -1,15 +1,14 @@
 use crate::secret::{Expose, Secret};
-use anyhow::{Context, Error, Result};
+use anyhow::{Context, Result};
 use open;
 use serde::{Deserialize, Serialize};
 use server::server::Server;
 use std::{
     fs::{copy, read_to_string, write},
-    io::ErrorKind,
     path::Path,
 };
-use twitch_api2::twitch_oauth2::{
-    refresh_token, AccessToken, ClientId, ClientSecret, RefreshToken, UserToken,
+use twitch_api::twitch_oauth2::{
+    AccessToken, ClientId, ClientSecret, RefreshToken, TwitchToken, UserToken,
 };
 
 const ACCOUNT_FILE: &str = "account.json";
@@ -64,8 +63,8 @@ impl Account {
             user_id,
             client_id: Secret::new(client_id),
             client_secret: Secret::new(client_secret),
-            user_access_token: Secret::new(String::from("")),
-            refresh_token: Secret::new(String::from("")),
+            user_access_token: Secret::new(String::new()),
+            refresh_token: Secret::new(String::new()),
             redirect_url_port: port,
         };
 
@@ -90,10 +89,10 @@ impl Account {
             .await
             .with_context(|| "Could not get user token")?;
 
-        account.user_access_token = Secret::new(token.access_token.into_string());
+        account.user_access_token = Secret::new(token.access_token.secret().to_owned());
 
         if let Some(refresh_token) = token.refresh_token {
-            account.refresh_token = Secret::new(refresh_token.into_string());
+            account.refresh_token = Secret::new(refresh_token.secret().to_owned());
         }
 
         account.save()?;
@@ -111,44 +110,40 @@ fn load_account() -> Result<Account> {
 }
 
 async fn check_token(account: &mut Account) -> Result<()> {
-    let existing_access_token =
-        AccessToken::new(account.user_access_token.expose_value().to_owned());
-
     if UserToken::from_existing(
         &reqwest::Client::default(),
-        existing_access_token,
-        None,
-        None,
+        AccessToken::new(account.user_access_token.expose_value().to_owned()),
+        Some(RefreshToken::new(
+            account.refresh_token.expose_value().to_owned(),
+        )),
+        Some(ClientSecret::new(
+            account.client_secret.expose_value().to_owned(),
+        )),
     )
     .await
     .is_err()
     {
-        #[allow(clippy::single_match_else)]
-        match refresh_token(
-            &reqwest::Client::default(),
-            &RefreshToken::new(account.refresh_token.expose_value().to_owned()),
-            &ClientId::new(account.client_id.expose_value().to_owned()),
-            &ClientSecret::new(account.client_secret.expose_value().to_owned()),
-        )
-        .await
-        {
-            Ok((access_token, _, refresh_token)) => {
-                account.user_access_token = Secret::new(access_token.secret().to_owned());
-                account.refresh_token = match refresh_token {
-                    Some(token) => Secret::new(token.secret().to_owned()),
-                    None => Secret::new(account.refresh_token.expose_value().to_owned()),
-                };
-                account.save()?;
+        let mut user_token = UserToken::from_existing_unchecked(
+            AccessToken::new(account.user_access_token.expose_value().to_owned()),
+            RefreshToken::new(account.refresh_token.expose_value().to_owned()),
+            account.client_id.expose_value().to_owned(),
+            ClientSecret::new(account.client_secret.expose_value().to_owned()),
+            account.username.clone().into(),
+            account.user_id.clone().into(),
+            None,
+            None,
+        );
 
-                return Ok(());
-            }
-            Err(_) => {
-                return Err(Error::new(std::io::Error::new(
-                    ErrorKind::Other,
-                    "Could not refresh token, invalid account could not be loaded",
-                )));
-            }
+        user_token
+            .refresh_token(&reqwest::Client::default())
+            .await?;
+
+        account.user_access_token = Secret::new(user_token.access_token.secret().to_owned());
+        account.refresh_token = match user_token.refresh_token {
+            Some(token) => Secret::new(token.secret().to_owned()),
+            None => Secret::new(account.refresh_token.expose_value().to_owned()),
         };
+        account.save()?;
     }
 
     Ok(())

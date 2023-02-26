@@ -11,7 +11,6 @@ pub const VERTICAL_MARGIN: u16 = 1;
 
 pub const TAB_TITLES: [&str; 1] = ["Home"];
 
-#[allow(clippy::integer_division)]
 pub fn animate_ellipsis(timer: u64) -> String {
     (0..((timer / 2) % 4)).map(|_| ".").collect::<String>()
 }
@@ -113,7 +112,7 @@ pub fn generate_input_box<'a>(
             if typing {
                 String::from(&theme.cursor.cursor)
             } else {
-                String::from("")
+                String::new()
             },
             Style::default()
                 .fg(theme.secondary.as_tui_colour())
@@ -140,7 +139,7 @@ pub fn generate_keys_widget<'a>(theme: &Theme, keybinds: &[String]) -> Paragraph
             let spacer = if i == 0 { "" } else { " | " };
 
             Span::styled(
-                format!("{}{}", spacer, bind),
+                format!("{spacer}{bind}"),
                 Style::default().add_modifier(Modifier::ITALIC),
             )
         })

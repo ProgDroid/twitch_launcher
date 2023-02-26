@@ -25,9 +25,9 @@ impl Cache {
         }
     }
 
-    #[allow(clippy::integer_arithmetic)]
     pub fn add(&mut self, state: AppState) -> usize {
-        if let Some(index) = (&self.storage)
+        if let Some(index) = self
+            .storage
             .iter()
             .position(|cached_state| discriminant(&state) == discriminant(cached_state))
         {

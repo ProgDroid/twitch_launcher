@@ -5,7 +5,7 @@ pub trait Panel {
     fn right(&self) -> Self;
 }
 
-#[derive(PartialEq, Copy, Clone)]
+#[derive(PartialEq, Eq, Copy, Clone)]
 pub enum Home {
     Favourites,
     Search,

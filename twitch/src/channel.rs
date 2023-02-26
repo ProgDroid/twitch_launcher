@@ -12,8 +12,8 @@ use std::{
     process::{Command, Output},
 };
 use tokio::{spawn, sync::mpsc::UnboundedSender};
-use twitch_api2::{
-    helix::streams::get_streams,
+use twitch_api::{
+    helix::streams::GetStreamsRequest,
     twitch_oauth2::{AccessToken, UserToken},
     HelixClient,
 };
@@ -47,22 +47,17 @@ impl Channel {
             {
                 Ok(token) => token,
                 Err(e) => {
-                    eprintln!(
-                        "Could not validate token while updating channel status: {}",
-                        e
-                    );
+                    eprintln!("Could not validate token while updating channel status: {e}");
                     return Status::Unknown;
                 }
             };
 
-        let req = get_streams::GetStreamsRequest::builder()
-            .user_login(vec![handle.into()])
-            .build();
+        let req = GetStreamsRequest::user_logins(vec![(&handle).into()]);
 
         let response = match client.req_get(req, &user_token).await {
             Ok(response) => response,
             Err(e) => {
-                eprintln!("Could not get channel status: {}", e);
+                eprintln!("Could not get channel status: {e}");
                 return Status::Unknown;
             }
         };

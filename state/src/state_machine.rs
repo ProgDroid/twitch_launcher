@@ -48,7 +48,6 @@ impl StateMachine {
         }
     }
 
-    #[allow(clippy::integer_arithmetic)]
     pub async fn tick(&mut self, account: &Option<Account>) {
         self.timer += 1;
 

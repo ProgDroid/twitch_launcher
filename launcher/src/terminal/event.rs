@@ -19,7 +19,7 @@ pub struct Handler {
 }
 
 impl Handler {
-    #[allow(clippy::shadow_reuse, clippy::expect_used)]
+    #[allow(clippy::expect_used)]
     pub fn new(tick_rate: u64) -> Self {
         let tick_rate = Duration::from_millis(tick_rate);
         let (sender, receiver) = unbounded_channel();

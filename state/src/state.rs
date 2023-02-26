@@ -112,7 +112,6 @@ impl AppState {
 // TODO state enter and exit?
 
 // TODO move to utils
-// #[allow(clippy::integer_arithmetic, clippy::integer_division)]
 // const fn ticks_from_seconds(tick_rate: u64, seconds: u64) -> u64 {
 //     (1000_u64 / tick_rate) * seconds
 // }

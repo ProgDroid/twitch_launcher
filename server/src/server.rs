@@ -39,44 +39,41 @@ impl Server {
                 .take_while(|line| !line.is_empty())
                 .collect();
 
-            match http_request.get(0) {
-                Some(req) => {
-                    respond_success(stream)?;
+            if let Some(req) = http_request.get(0) {
+                respond_success(stream)?;
 
-                    let query = req
-                        .split_whitespace()
-                        .nth(1)
-                        .with_context(|| "Could not get query params from request")?;
+                let query = req
+                    .split_whitespace()
+                    .nth(1)
+                    .with_context(|| "Could not get query params from request")?;
 
-                    let pairs = get_params(query)?;
+                let pairs = get_params(query)?;
 
-                    if let Some(error_description) = pairs.get("error_description") {
-                        return Err(Error::new(std::io::Error::new(
-                            ErrorKind::Other,
-                            format!("Got error from Twitch - {}", error_description,),
-                        )));
-                    }
-
-                    if let Some(code) = pairs.get("code") {
-                        if let Some(state) = pairs.get("state") {
-                            return Ok((code.clone(), state.clone()));
-                        }
-                    }
-
+                if let Some(error_description) = pairs.get("error_description") {
                     return Err(Error::new(std::io::Error::new(
                         ErrorKind::Other,
-                        "Code and state string not in query params",
+                        format!("Got error from Twitch - {error_description}",),
                     )));
                 }
-                None => {
-                    respond_failure(stream)?;
 
-                    return Err(Error::new(std::io::Error::new(
-                        ErrorKind::Other,
-                        "Bad request",
-                    )));
+                if let Some(code) = pairs.get("code") {
+                    if let Some(state) = pairs.get("state") {
+                        return Ok((code.clone(), state.clone()));
+                    }
                 }
+
+                return Err(Error::new(std::io::Error::new(
+                    ErrorKind::Other,
+                    "Code and state string not in query params",
+                )));
             }
+
+            respond_failure(stream)?;
+
+            return Err(Error::new(std::io::Error::new(
+                ErrorKind::Other,
+                "Bad request",
+            )));
         }
 
         Err(Error::new(std::io::Error::new(
@@ -88,7 +85,7 @@ impl Server {
 
 fn bind_listener(port: u16) -> Result<TcpListener> {
     TcpListener::bind(format!("127.0.0.1:{}", &port))
-        .with_context(|| format!("Could not bind listener to port {}", port))
+        .with_context(|| format!("Could not bind listener to port {port}"))
 }
 
 fn respond_success(stream: TcpStream) -> Result<()> {

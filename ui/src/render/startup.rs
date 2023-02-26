@@ -8,7 +8,7 @@ use tui::{
     widgets::{Block, Paragraph},
 };
 
-#[allow(clippy::trivially_copy_pass_by_ref, clippy::indexing_slicing)]
+#[allow(clippy::trivially_copy_pass_by_ref)]
 pub fn starting<B: Backend>(theme: &Theme, frame: &mut Frame<'_, B>, timer: u64) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
@@ -37,7 +37,7 @@ pub fn starting<B: Backend>(theme: &Theme, frame: &mut Frame<'_, B>, timer: u64)
     );
 }
 
-#[allow(clippy::trivially_copy_pass_by_ref, clippy::indexing_slicing)]
+#[allow(clippy::trivially_copy_pass_by_ref)]
 pub fn account_missing<B: Backend>(theme: &Theme, frame: &mut Frame<'_, B>, timer: u64) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
