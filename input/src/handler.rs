@@ -55,18 +55,16 @@ where
 
                 let mut separator = BIND_SEPARATOR;
 
-                let index = match result {
-                    Some(i) => i,
-                    #[allow(clippy::integer_arithmetic)]
-                    None => {
+                let index = result.map_or_else(
+                    || {
                         actions.push(action.clone());
-                        binds.push(format!("{}: ", action));
+                        binds.push(format!("{action}: "));
                         separator = "";
                         actions.len() - 1
-                    }
-                };
+                    },
+                    |i| i,
+                );
 
-                #[allow(clippy::indexing_slicing)]
                 binds[index].push_str(
                     format!("{}{}", separator, event_to_string(input.event).as_str()).as_str(),
                 );
@@ -81,7 +79,7 @@ fn event_to_string(key_event: KeyEvent) -> String {
     format!(
         "{}{}",
         if key_event.code == KeyCode::BackTab {
-            String::from("")
+            String::new()
         } else {
             modifier_to_string(key_event.modifiers)
         },
@@ -100,19 +98,19 @@ fn modifier_to_string(modifier: KeyModifiers) -> String {
     }
 
     if modifier.contains(KeyModifiers::ALT) {
-        write!(&mut modifier_display, "{}ALT", separator)
+        write!(&mut modifier_display, "{separator}ALT")
             .expect("Could not write ALT to modifier string");
         separator = MODIFIER_SEPARATOR;
     }
 
     if modifier.contains(KeyModifiers::SHIFT) {
-        write!(&mut modifier_display, "{}SHIFT", separator)
+        write!(&mut modifier_display, "{separator}SHIFT")
             .expect("Could not write SHIFT to modifier string");
         separator = MODIFIER_SEPARATOR;
     }
 
     if !modifier_display.is_empty() {
-        write!(&mut modifier_display, "{}", separator)
+        write!(&mut modifier_display, "{separator}")
             .expect("Could not write separator at the end of modifier string");
     }
 
@@ -135,7 +133,7 @@ fn code_to_string(code: KeyCode) -> String {
         KeyCode::BackTab => String::from("BackTab"),
         KeyCode::Delete => String::from("Delete"),
         KeyCode::Insert => String::from("Insert"),
-        KeyCode::F(num) => format!("F{}", num),
+        KeyCode::F(num) => format!("F{num}"),
         KeyCode::Char(c) => match c {
             ' ' => String::from("Space"),
             _ => c.to_uppercase().to_string(),
@@ -149,7 +147,7 @@ fn code_to_string(code: KeyCode) -> String {
         KeyCode::Menu => String::from("Menu"),
         KeyCode::Pause => String::from("Pause"),
         KeyCode::KeypadBegin => String::from("Keypad Begin"),
-        KeyCode::Media(media) => format!("Media {:?}", media),
-        KeyCode::Modifier(modifier) => format!("Modifier {:?}", modifier),
+        KeyCode::Media(media) => format!("Media {media:?}"),
+        KeyCode::Modifier(modifier) => format!("Modifier {modifier:?}"),
     }
 }

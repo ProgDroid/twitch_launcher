@@ -20,10 +20,7 @@ pub struct App {
 
 impl App {
     pub async fn new() -> Self {
-        let account: Option<Account> = match Account::load().await {
-            Ok(account) => Some(account),
-            Err(_) => None,
-        };
+        let account: Option<Account> = (Account::load().await).ok();
 
         let (sender, receiver) = mpsc::unbounded_channel();
 

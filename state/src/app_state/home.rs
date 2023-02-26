@@ -76,7 +76,6 @@ impl Home {
         }
     }
 
-    #[allow(clippy::indexing_slicing)]
     pub fn from_existing(state: &mut Self, tx: &UnboundedSender<Event>) -> Self {
         let mut channels = state.favourites.clone();
 
@@ -104,7 +103,6 @@ impl Home {
         Self::new(0, favourites, false, &Vec::new(), HomePanel::default(), tx)
     }
 
-    #[allow(clippy::indexing_slicing)]
     pub fn channel_check(&mut self) {
         let mut channels = self.favourites.clone();
 
@@ -193,12 +191,12 @@ impl State for Home {
             Event::CycleTab(_direction) => None,
             Event::ChannelSelected(channel, chat) => {
                 if let Err(e) = channel.launch() {
-                    eprintln!("Error opening stream: {}", e);
+                    eprintln!("Error opening stream: {e}");
                 }
 
                 if chat {
                     if let Err(e) = channel.launch_chat() {
-                        eprintln!("Error opening chat: {}", e);
+                        eprintln!("Error opening chat: {e}");
                     }
                 }
 
@@ -238,7 +236,6 @@ impl State for Home {
                     };
                 }
             }
-            #[allow(clippy::integer_arithmetic)]
             Event::HomeEndHighlight(end) => {
                 if self.focused_panel == HomePanel::Favourites {
                     self.channel_highlight = match end {
@@ -249,7 +246,9 @@ impl State for Home {
             }
             Event::Selected => match self.focused_panel {
                 HomePanel::Favourites => {
-                    chat_popup(tx);
+                    if self.favourites.get(self.channel_highlight).is_some() {
+                        chat_popup(tx);
+                    }
                 }
                 HomePanel::Search => {
                     self.typing = true;

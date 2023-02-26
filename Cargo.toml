@@ -1,6 +1,6 @@
 [package]
 name = "twitch_launcher"
-version = "0.3.0"
+version = "0.3.2"
 authors = ["ProgDroid"]
 edition = "2021"
 rust-version = "1.60"
@@ -34,5 +34,5 @@ twitch = { path = "twitch" }
 ui = { path = "ui" }
 
 [dependencies.tokio]
-version = "1.17"
+version = "1.25"
 features = ["full"]

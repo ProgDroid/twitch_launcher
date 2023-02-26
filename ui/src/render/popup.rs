@@ -68,7 +68,7 @@ pub fn input<B: Backend>(
             input,
             typing,
             true,
-            String::from(""),
+            String::new(),
             theme.background.as_tui_colour(),
         ),
         area,
@@ -99,7 +99,6 @@ pub fn timed_info<B: Backend>(
     );
 }
 
-#[allow(clippy::indexing_slicing)]
 #[must_use]
 fn popup<B: Backend>(
     theme: &Theme,
@@ -169,13 +168,7 @@ fn generate_choice_popup_list<'a>(theme: &Theme, options: &[String]) -> List<'a>
         .highlight_symbol(" >")
 }
 
-#[allow(
-    clippy::trivially_copy_pass_by_ref,
-    clippy::as_conversions,
-    clippy::cast_possible_truncation,
-    clippy::integer_arithmetic,
-    clippy::integer_division
-)]
+#[allow(clippy::trivially_copy_pass_by_ref, clippy::cast_possible_truncation)]
 fn generate_timed_popup_progress_bar<'a>(theme: &Theme, duration: u64, timer: u64) -> Gauge<'a> {
     Gauge::default()
         .block(Block::default())
@@ -210,11 +203,6 @@ fn generate_timed_info_popup_layout(area: Rect) -> Vec<Rect> {
         .split(area)
 }
 
-#[allow(
-    clippy::integer_arithmetic,
-    clippy::integer_division,
-    clippy::indexing_slicing
-)]
 fn generate_popup_layout(r: Rect) -> Vec<Rect> {
     let layout = Layout::default()
         .direction(Direction::Horizontal)

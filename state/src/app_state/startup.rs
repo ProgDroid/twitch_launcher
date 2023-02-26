@@ -67,14 +67,13 @@ impl State for Startup {
     ) -> Option<Transition> {
         match event {
             Event::Started => {
-                if let Ok(channels) = Channel::load_from_file(CHANNELS_FILE) {
-                    return Some(Transition::To(AppState::Home(Home::init(
-                        channels.as_slice(),
-                        &tx,
-                    ))));
-                };
+                let channels = Channel::load_from_file(CHANNELS_FILE)
+                    .map_or_else(|_| Vec::new(), |channels| channels);
 
-                Some(Transition::To(AppState::Exit(Exit::new())))
+                Some(Transition::To(AppState::Home(Home::init(
+                    channels.as_slice(),
+                    &tx,
+                ))))
             }
             Event::Exited => Some(Transition::To(AppState::Exit(Exit::new()))),
             _ => None,
@@ -139,14 +138,13 @@ impl Default for AccountMissing {
 
 #[async_trait]
 impl State for AccountMissing {
-    #[allow(clippy::integer_arithmetic, clippy::integer_division)]
     async fn tick(&self, _: &Option<Account>, timer: u64, events: UnboundedSender<Event>) {
         if timer > self.duration {
             if let Some(callback) = self.account_config.callback {
                 if let Some(title) = &self.account_config.title {
                     let _result = events.send(Event::InputPopupStarted((
                         String::from(title),
-                        format!("Your {} here", title),
+                        format!("Your {title} here"),
                         Some(callback),
                     )));
 
@@ -182,7 +180,7 @@ impl State for AccountMissing {
                     let _result = events.send(Event::AccountConfigured(account));
                 }
                 Err(e) => {
-                    eprintln!("Could not set new account: {}", e);
+                    eprintln!("Could not set new account: {e}");
                     let _result = events.send(Event::Exited);
                 }
             }
@@ -202,14 +200,13 @@ impl State for AccountMissing {
         match event {
             Event::Exited => Some(Transition::To(AppState::Exit(Exit::new()))),
             Event::AccountConfigured(_) => {
-                if let Ok(channels) = Channel::load_from_file(CHANNELS_FILE) {
-                    return Some(Transition::To(AppState::Home(Home::init(
-                        channels.as_slice(),
-                        &tx,
-                    ))));
-                };
+                let channels = Channel::load_from_file(CHANNELS_FILE)
+                    .map_or_else(|_| Vec::new(), |channels| channels);
 
-                None
+                Some(Transition::To(AppState::Home(Home::init(
+                    channels.as_slice(),
+                    &tx,
+                ))))
             }
             Event::InputPopupStarted((title, message, callback)) => Some(Transition::Push(
                 AppState::Popup(Popup::new_input(title, message, callback)),

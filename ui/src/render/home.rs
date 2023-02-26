@@ -17,13 +17,7 @@ use tui::{
 };
 use twitch::channel::{status::Status, Channel};
 
-// TODO if favourites file doesn't exist, nothing works. This shouldn't happen
-
-#[allow(
-    clippy::trivially_copy_pass_by_ref,
-    clippy::indexing_slicing,
-    clippy::too_many_arguments
-)]
+#[allow(clippy::trivially_copy_pass_by_ref, clippy::too_many_arguments)]
 pub fn home<B: Backend>(
     theme: &Theme,
     frame: &mut Frame<'_, B>,
@@ -61,7 +55,7 @@ pub fn home<B: Backend>(
         generate_title(
             "Favourites",
             theme.elevation(Elevation::Level2).as_tui_colour(),
-            (&theme.primary).as_tui_colour(),
+            theme.primary.as_tui_colour(),
             favourites_focused,
         ),
         list_chunks[0],
@@ -119,7 +113,6 @@ fn generate_favourites_layout(area: Rect) -> Vec<Rect> {
         .split(area)
 }
 
-#[allow(clippy::integer_arithmetic, clippy::as_conversions)]
 fn generate_favourites_widget<'a>(
     theme: &Theme,
     channels: &'a [Channel],
@@ -176,7 +169,6 @@ fn generate_favourites_widget<'a>(
         .highlight_symbol(" >")
 }
 
-#[allow(clippy::indexing_slicing)]
 fn generate_search_layout(area: Rect) -> Vec<Rect> {
     let search_chunks = Layout::default()
         .direction(Direction::Horizontal)

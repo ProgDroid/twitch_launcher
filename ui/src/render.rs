@@ -1,5 +1,3 @@
-#![allow(clippy::pub_use)]
-
 mod common;
 mod home;
 mod popup;
