@@ -27,6 +27,7 @@ pub struct Account {
 }
 
 impl Account {
+    #[allow(clippy::missing_errors_doc)]
     pub async fn load() -> Result<Self> {
         if !Path::new(ACCOUNT_FILE).exists() {
             copy(ACCOUNT_DIST_FILE, ACCOUNT_FILE)?;
@@ -39,6 +40,7 @@ impl Account {
         Ok(account)
     }
 
+    #[allow(clippy::missing_errors_doc)]
     pub fn save(&self) -> Result<()> {
         let file_contents: String = serde_json::to_string_pretty(&self)?;
 
@@ -51,6 +53,7 @@ impl Account {
         self.user_access_token.clone()
     }
 
+    #[allow(clippy::missing_errors_doc)]
     pub async fn new(
         username: String,
         user_id: String,

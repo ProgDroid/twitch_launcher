@@ -24,19 +24,24 @@ pub struct Channel {
     pub handle: String,
     #[serde(default = "Status::default")]
     pub status: Status,
+    pub game: Option<String>,
 }
 
 impl Channel {
     #[must_use]
-    pub fn new(friendly_name: String, handle: String) -> Self {
+    pub fn new(friendly_name: String, handle: String, game: Option<String>) -> Self {
         Self {
             friendly_name,
             handle,
             status: Status::default(),
+            game,
         }
     }
 
-    pub async fn update_status(handle: String, user_access_token: Secret) -> Status {
+    pub async fn update_status_and_game(
+        handle: String,
+        user_access_token: Secret,
+    ) -> (Status, Option<String>) {
         let access_token = AccessToken::new(user_access_token.expose_value().to_owned());
 
         let client: HelixClient<reqwest::Client> = HelixClient::new();
@@ -48,7 +53,7 @@ impl Channel {
                 Ok(token) => token,
                 Err(e) => {
                     eprintln!("Could not validate token while updating channel status: {e}");
-                    return Status::Unknown;
+                    return (Status::Unknown, None);
                 }
             };
 
@@ -58,20 +63,26 @@ impl Channel {
             Ok(response) => response,
             Err(e) => {
                 eprintln!("Could not get channel status: {e}");
-                return Status::Unknown;
+                return (Status::Unknown, None);
             }
         };
 
-        if response.data.is_empty() {
-            Status::Offline
+        let stream = response
+            .data
+            .into_iter()
+            .find(|stream| stream.user_login.to_string() == handle);
+
+        if let Some(stream_data) = stream {
+            (Status::Online, Some(stream_data.game_name))
         } else {
-            Status::Online
+            (Status::Offline, None)
         }
     }
 
     // TODO add support for currently hosting?
 
     // TODO popup if channel is offline (are you sure?)
+    #[allow(clippy::missing_errors_doc)]
     pub fn launch(&self) -> Result<Output> {
         Command::new("powershell")
             .arg("Start-Process")
@@ -82,6 +93,7 @@ impl Channel {
             .output()
     }
 
+    #[allow(clippy::missing_errors_doc)]
     pub fn launch_chat(&self) -> Result<Output> {
         Command::new("powershell")
             .arg("Start-Process")
@@ -90,13 +102,18 @@ impl Channel {
             .output()
     }
 
+    #[allow(clippy::missing_errors_doc)]
     pub fn load_from_file(file: &str) -> Result<Vec<Self>> {
         let data: String = read_to_string(file)?;
 
         Ok(serde_json::from_str(data.as_str())?)
     }
 
-    pub fn check(channels: &[Self], account: &Account, sender: &UnboundedSender<(String, Status)>) {
+    pub fn check(
+        channels: &[Self],
+        account: &Account,
+        sender: &UnboundedSender<(String, (Status, Option<String>))>,
+    ) {
         // TODO add cache of statuses?
         for channel in channels {
             let tx = (*sender).clone();
@@ -107,7 +124,7 @@ impl Channel {
             spawn(async move {
                 tx.send((
                     String::from(&channel_handle),
-                    Self::update_status(channel_handle, secret).await,
+                    Self::update_status_and_game(channel_handle, secret).await,
                 ))
             });
         }

@@ -1,7 +1,7 @@
 use crate::{
     app_state::{
         exit::Exit,
-        popup::{chat_choice, chat_choice_search, Popup},
+        popup::{chat_popup, chat_popup_search, Popup},
     },
     event::Event,
     input_mappings::{home_inputs, typing_inputs},
@@ -27,8 +27,8 @@ use ui::{
 pub struct Home {
     channel_highlight: usize,
     pub favourites: Vec<Channel>,
-    channel_check: UnboundedReceiver<(String, Status)>,
-    channel_check_sender: UnboundedSender<(String, Status)>,
+    channel_check: UnboundedReceiver<(String, (Status, Option<String>))>,
+    channel_check_sender: UnboundedSender<(String, (Status, Option<String>))>,
     typing: bool,
     search_input: Vec<char>,
     focused_panel: HomePanel,
@@ -79,7 +79,7 @@ impl Home {
     pub fn from_existing(state: &mut Self, tx: &UnboundedSender<Event>) -> Self {
         let mut channels = state.favourites.clone();
 
-        while let Ok((handle, status)) = state.channel_check.try_recv() {
+        while let Ok((handle, (status, game_name))) = state.channel_check.try_recv() {
             #[allow(clippy::expect_used)]
             let index: usize = state
                 .favourites
@@ -87,6 +87,7 @@ impl Home {
                 .position(|channel| channel.handle == handle && channel.status != status)
                 .expect("Received channel status for non-existing channel");
             channels[index].status = status;
+            channels[index].game = game_name;
         }
 
         Self::new(
@@ -106,7 +107,7 @@ impl Home {
     pub fn channel_check(&mut self) {
         let mut channels = self.favourites.clone();
 
-        while let Ok((handle, status)) = self.channel_check.try_recv() {
+        while let Ok((handle, (status, game_name))) = self.channel_check.try_recv() {
             #[allow(clippy::expect_used)]
             let index: usize = self
                 .favourites
@@ -114,6 +115,7 @@ impl Home {
                 .position(|channel| channel.handle == handle && channel.status != status)
                 .expect("Received channel status for non-existing channel");
             channels[index].status = status;
+            channels[index].game = game_name;
         }
 
         self.favourites = channels;
@@ -182,7 +184,7 @@ impl State for Home {
                 // TODO check if channel is online?
                 let handle: String = self.search_input.iter().collect();
 
-                let channel = Channel::new(handle.clone(), handle);
+                let channel = Channel::new(handle.clone(), handle, None);
 
                 let _result = tx.send(Event::ChannelSelected(channel, chat_choice));
 
@@ -289,22 +291,4 @@ impl State for Home {
             _ => {}
         }
     }
-}
-
-fn chat_popup(tx: &UnboundedSender<Event>) {
-    let _result = tx.send(Event::ChoicePopupStarted((
-        String::from("Launch Chat"),
-        String::from("Do you want to launch the chat with the stream?"),
-        vec![String::from("No"), String::from("Yes")],
-        Some(chat_choice),
-    )));
-}
-
-fn chat_popup_search(tx: &UnboundedSender<Event>) {
-    let _result = tx.send(Event::ChoicePopupStarted((
-        String::from("Launch Chat"),
-        String::from("Do you want to launch the chat with the stream?"),
-        vec![String::from("No"), String::from("Yes")],
-        Some(chat_choice_search),
-    )));
 }

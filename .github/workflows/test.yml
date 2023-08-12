@@ -1,0 +1,73 @@
+name: Test
+
+on:
+  push:
+    branches:
+      - main
+    pull_request:
+      - main
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  check:
+    name: Run check, tests and lints for ${{ matrix.config.os }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - { os: 'Windows', target: 'x86_64-pc-windows-gnu' }
+          - { os: 'Linux', target: 'x86_64-unknown-linux-musl' }
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+          components: rustfmt, clippy
+
+      - name: Run cargo check
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
+
+      - name: Run cargo test
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --features doc-tests
+
+      - name: Run cargo fmt
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all -- --check
+
+      - name: Run cargo clippy
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: |
+            --workspace --message-format=json --all-targets --all --
+            -D warnings
+            -D clippy::all
+            -D clippy::pedantic
+            -D clippy::nursery
+            -A clippy::missing_docs_in_private_items
+            -A clippy::separated_literal_suffix
+            -A clippy::implicit_return
+            -A clippy::print_stderr
+            -A clippy::exhaustive_enums
+            -A clippy::exhaustive_structs
+            -A clippy::single_char_lifetime_names
+            -A clippy::missing_inline_in_public_items
+            -A clippy::self_named_module_files
+            -A clippy::wildcard_enum_match_arm
+            -A clippy::pattern_type_mismatch
+            -A clippy::std-instead-of-core

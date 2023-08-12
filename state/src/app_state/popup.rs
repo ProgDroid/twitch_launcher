@@ -317,3 +317,22 @@ pub fn redirect_url_port_submit(tx: &UnboundedSender<Event>, output: &Output) {
         ));
     }
 }
+
+#[allow(clippy::module_name_repetitions)]
+pub fn chat_popup(tx: &UnboundedSender<Event>) {
+    let _result = tx.send(Event::ChoicePopupStarted((
+        String::from("Launch Chat"),
+        String::from("Do you want to launch the chat with the stream?"),
+        vec![String::from("No"), String::from("Yes")],
+        Some(chat_choice),
+    )));
+}
+
+pub fn chat_popup_search(tx: &UnboundedSender<Event>) {
+    let _result = tx.send(Event::ChoicePopupStarted((
+        String::from("Launch Chat"),
+        String::from("Do you want to launch the chat with the stream?"),
+        vec![String::from("No"), String::from("Yes")],
+        Some(chat_choice_search),
+    )));
+}
