@@ -24,6 +24,8 @@ use ui::{
     theme::Theme,
 };
 
+use super::lists::Lists;
+
 pub struct Home {
     channel_highlight: usize,
     pub favourites: Vec<Channel>,
@@ -190,7 +192,13 @@ impl State for Home {
 
                 None
             }
-            Event::CycleTab(_direction) => None,
+            Event::CycleTab(direction) => match direction {
+                MoveDirection::Left | MoveDirection::Right => {
+                    // TODO shouldn't be reloading this every time
+                    Some(Transition::To(AppState::Lists(Lists::init())))
+                }
+                _ => None,
+            },
             Event::ChannelSelected(channel, chat) => {
                 if let Err(e) = channel.launch() {
                     eprintln!("Error opening stream: {e}");

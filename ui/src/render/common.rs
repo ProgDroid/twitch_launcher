@@ -9,7 +9,7 @@ use tui::{
 pub const HORIZONTAL_MARGIN: u16 = 2;
 pub const VERTICAL_MARGIN: u16 = 1;
 
-pub const TAB_TITLES: [&str; 1] = ["Home"];
+pub const TAB_TITLES: [&str; 2] = ["Home", "Lists"];
 
 pub fn animate_ellipsis(timer: u64) -> String {
     (0..((timer / 2) % 4)).map(|_| ".").collect::<String>()

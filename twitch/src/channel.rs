@@ -18,6 +18,13 @@ use twitch_api::{
     HelixClient,
 };
 
+#[derive(Clone)]
+pub struct List {
+    pub channels: Vec<Channel>,
+    pub name: String,
+    pub path: String,
+}
+
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Channel {
     pub friendly_name: String,

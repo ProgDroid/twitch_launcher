@@ -2,6 +2,7 @@ use crate::{
     app_state::{
         exit::Exit,
         home::Home,
+        lists::Lists,
         popup::Popup,
         startup::{AccountMissing, Startup},
     },
@@ -40,6 +41,7 @@ pub enum AppState {
     Startup(Startup),
     Home(Home),
     Popup(Popup),
+    Lists(Lists),
     // Follows(StateFollows),
     Exit(Exit),
 }
@@ -51,6 +53,7 @@ impl AppState {
             Self::Startup(state) => state.tick(account, timer, tx).await,
             Self::Home(state) => state.tick(account, timer, tx).await,
             Self::Popup(state) => state.tick(account, timer, tx).await,
+            Self::Lists(state) => state.tick(account, timer, tx).await,
             Self::Exit(state) => state.tick(account, timer, tx).await,
         }
     }
@@ -61,6 +64,7 @@ impl AppState {
             Self::Startup(state) => state.render(theme, frame, timer),
             Self::Home(state) => state.render(theme, frame, timer),
             Self::Popup(state) => state.render(theme, frame, timer),
+            Self::Lists(state) => state.render(theme, frame, timer),
             Self::Exit(state) => state.render(theme, frame, timer),
         }
     }
@@ -77,6 +81,7 @@ impl AppState {
             Self::Startup(state) => state.transition(event, account, events_sender),
             Self::Home(state) => state.transition(event, account, events_sender),
             Self::Popup(state) => state.transition(event, account, events_sender),
+            Self::Lists(state) => state.transition(event, account, events_sender),
             Self::Exit(state) => state.transition(event, account, events_sender),
         }
     }
@@ -87,6 +92,7 @@ impl AppState {
             Self::Startup(state) => state.handle(key_event),
             Self::Home(state) => state.handle(key_event),
             Self::Popup(state) => state.handle(key_event),
+            Self::Lists(state) => state.handle(key_event),
             Self::Exit(state) => state.handle(key_event),
         }
     }
@@ -94,7 +100,11 @@ impl AppState {
     pub fn receive(&mut self) {
         match self {
             Self::Home(state) => state.channel_check(),
-            Self::AccountMissing(_) | Self::Startup(_) | Self::Popup(_) | Self::Exit(_) => {}
+            Self::AccountMissing(_)
+            | Self::Startup(_)
+            | Self::Popup(_)
+            | Self::Exit(_)
+            | Self::Lists(_) => {}
         }
     }
 
@@ -104,6 +114,7 @@ impl AppState {
             Self::Startup(state) => state.process(action, tx),
             Self::Home(state) => state.process(action, tx),
             Self::Popup(state) => state.process(action, tx),
+            Self::Lists(state) => state.process(action, tx),
             Self::Exit(state) => state.process(action, tx),
         }
     }

@@ -164,3 +164,7 @@ fn cycle_panel() -> Vec<KeyBind<Event>> {
         },
     ]
 }
+
+pub fn lists_inputs() -> Vec<KeyBind<Event>> {
+    [exit(), cycle_tabs(), handle_highlights(), select()].concat()
+}
