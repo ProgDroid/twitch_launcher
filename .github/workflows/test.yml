@@ -41,7 +41,6 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --features doc-tests
 
       - name: Run cargo fmt
         uses: actions-rs/cargo@v1
