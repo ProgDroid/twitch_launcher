@@ -44,21 +44,9 @@ impl Home {
         typing: bool,
         search_input: &[char],
         focused_panel: HomePanel,
-        tx: &UnboundedSender<Event>,
+        _: &UnboundedSender<Event>,
     ) -> Self {
         let (sender, receiver) = unbounded_channel();
-
-        let mut channels_awaiting: Vec<Channel> = Vec::new();
-
-        for channel in favourites {
-            if channel.status == Status::Awaiting {
-                channels_awaiting.push(channel.clone());
-            }
-        }
-
-        if !channels_awaiting.is_empty() {
-            let _result = tx.send(Event::CheckChannels(channels_awaiting));
-        }
 
         let inputs = if typing {
             typing_inputs()
@@ -82,14 +70,14 @@ impl Home {
         let mut channels = state.favourites.clone();
 
         while let Ok((handle, (status, game_name))) = state.channel_check.try_recv() {
-            #[allow(clippy::expect_used)]
-            let index: usize = state
+            if let Some(index) = state
                 .favourites
                 .iter()
                 .position(|channel| channel.handle == handle && channel.status != status)
-                .expect("Received channel status for non-existing channel");
-            channels[index].status = status;
-            channels[index].game = game_name;
+            {
+                channels[index].status = status;
+                channels[index].game = game_name;
+            }
         }
 
         Self::new(
@@ -103,6 +91,18 @@ impl Home {
     }
 
     pub fn init(favourites: &[Channel], tx: &UnboundedSender<Event>) -> Self {
+        let mut channels_awaiting: Vec<Channel> = Vec::new();
+
+        for channel in favourites {
+            if channel.status == Status::Awaiting {
+                channels_awaiting.push(channel.clone());
+            }
+        }
+
+        if !channels_awaiting.is_empty() {
+            let _result = tx.send(Event::CheckChannels(channels_awaiting));
+        }
+
         Self::new(0, favourites, false, &Vec::new(), HomePanel::default(), tx)
     }
 
@@ -110,14 +110,14 @@ impl Home {
         let mut channels = self.favourites.clone();
 
         while let Ok((handle, (status, game_name))) = self.channel_check.try_recv() {
-            #[allow(clippy::expect_used)]
-            let index: usize = self
+            if let Some(index) = self
                 .favourites
                 .iter()
                 .position(|channel| channel.handle == handle && channel.status != status)
-                .expect("Received channel status for non-existing channel");
-            channels[index].status = status;
-            channels[index].game = game_name;
+            {
+                channels[index].status = status;
+                channels[index].game = game_name;
+            }
         }
 
         self.favourites = channels;
@@ -126,6 +126,7 @@ impl Home {
 
 #[async_trait]
 impl State for Home {
+    #[allow(clippy::ignored_unit_patterns)]
     async fn tick(&self, _: &Option<Account>, _: u64, _: UnboundedSender<Event>) {}
 
     fn render<B: Backend>(&self, theme: &Theme, frame: &mut Frame<'_, B>, _: u64) {
@@ -195,7 +196,7 @@ impl State for Home {
             Event::CycleTab(direction) => match direction {
                 MoveDirection::Left | MoveDirection::Right => {
                     // TODO shouldn't be reloading this every time
-                    Some(Transition::To(AppState::Lists(Lists::init())))
+                    Some(Transition::To(AppState::Lists(Lists::init(&tx))))
                 }
                 _ => None,
             },

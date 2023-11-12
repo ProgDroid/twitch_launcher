@@ -49,6 +49,7 @@ impl Default for Startup {
 
 #[async_trait]
 impl State for Startup {
+    #[allow(clippy::ignored_unit_patterns)]
     async fn tick(&self, _: &Option<Account>, timer: u64, events: UnboundedSender<Event>) {
         if timer > self.duration {
             let _result = events.send(Event::Started);
@@ -138,6 +139,7 @@ impl Default for AccountMissing {
 
 #[async_trait]
 impl State for AccountMissing {
+    #[allow(clippy::ignored_unit_patterns)]
     async fn tick(&self, _: &Option<Account>, timer: u64, events: UnboundedSender<Event>) {
         if timer > self.duration {
             if let Some(callback) = self.account_config.callback {

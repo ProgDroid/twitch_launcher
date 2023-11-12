@@ -123,6 +123,7 @@ fn new(title: String, message: String, variant: Type, callback: Option<Callback>
 
 #[async_trait]
 impl State for Popup {
+    #[allow(clippy::ignored_unit_patterns)]
     async fn tick(&self, _: &Option<Account>, timer: u64, events: UnboundedSender<Event>) {
         if let Type::TimedInfo(popup) = &self.variant {
             if timer > popup.duration {

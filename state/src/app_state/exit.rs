@@ -16,6 +16,7 @@ impl Exit {
 
 #[async_trait]
 impl State for Exit {
+    #[allow(clippy::ignored_unit_patterns)]
     async fn tick(&self, _: &Option<Account>, _: u64, tx: UnboundedSender<Event>) {
         let _result = tx.send(Event::Exited);
     }

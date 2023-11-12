@@ -72,14 +72,14 @@ impl Lists {
             let mut channels = list.channels.clone();
 
             while let Ok((handle, (status, game_name))) = state.channel_check.try_recv() {
-                #[allow(clippy::expect_used)]
-                let index: usize = list
+                if let Some(index) = list
                     .channels
                     .iter()
                     .position(|channel| channel.handle == handle && channel.status != status)
-                    .expect("Received channel status for non-existing channel");
-                channels[index].status = status;
-                channels[index].game = game_name;
+                {
+                    channels[index].status = status;
+                    channels[index].game = game_name;
+                }
             }
 
             updated_lists[index].channels = channels;
@@ -93,7 +93,7 @@ impl Lists {
         )
     }
 
-    pub fn init() -> Self {
+    pub fn init(tx: &UnboundedSender<Event>) -> Self {
         let lists = WalkDir::new(LISTS_PATH)
             .sort(true)
             .into_iter()
@@ -110,7 +110,20 @@ impl Lists {
                 // TODO error handling here needs doing
                 let data: String = read_to_string(file_path).unwrap_or_default();
 
-                let channels = serde_json::from_str(data.as_str()).unwrap_or_default();
+                let channels: Vec<Channel> =
+                    serde_json::from_str(data.as_str()).unwrap_or_default();
+
+                let mut channels_awaiting: Vec<Channel> = Vec::new();
+
+                for channel in &channels {
+                    if channel.status == Status::Awaiting {
+                        channels_awaiting.push((*channel).clone());
+                    }
+                }
+
+                if !channels_awaiting.is_empty() {
+                    let _result = tx.send(Event::CheckChannels(channels_awaiting));
+                }
 
                 let name = file_name.unwrap_or_default();
 
@@ -131,13 +144,13 @@ impl Lists {
                 let mut channels = list.channels.clone();
 
                 while let Ok((handle, (status, game_name))) = self.channel_check.try_recv() {
-                    #[allow(clippy::expect_used)]
-                    let index: usize = channels
+                    if let Some(index) = channels
                         .iter()
                         .position(|channel| channel.handle == handle && channel.status != status)
-                        .expect("Received channel status for non-existing channel");
-                    channels[index].status = status;
-                    channels[index].game = game_name;
+                    {
+                        channels[index].status = status;
+                        channels[index].game = game_name;
+                    }
                 }
 
                 self.lists[open_list_index].channels = channels;
@@ -148,6 +161,7 @@ impl Lists {
 
 #[async_trait]
 impl State for Lists {
+    #[allow(clippy::ignored_unit_patterns)]
     async fn tick(&self, _: &Option<Account>, _: u64, _: UnboundedSender<Event>) {}
 
     fn render<B: Backend>(&self, theme: &Theme, frame: &mut Frame<'_, B>, _: u64) {
