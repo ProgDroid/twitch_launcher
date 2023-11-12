@@ -100,11 +100,8 @@ impl AppState {
     pub fn receive(&mut self) {
         match self {
             Self::Home(state) => state.channel_check(),
-            Self::AccountMissing(_)
-            | Self::Startup(_)
-            | Self::Popup(_)
-            | Self::Exit(_)
-            | Self::Lists(_) => {}
+            Self::Lists(state) => state.channel_check(),
+            Self::AccountMissing(_) | Self::Startup(_) | Self::Popup(_) | Self::Exit(_) => {}
         }
     }
 

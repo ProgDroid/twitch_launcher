@@ -38,7 +38,7 @@ impl Server {
             let buf_reader = BufReader::new(&mut stream);
             let http_request: Vec<_> = buf_reader
                 .lines()
-                .filter_map(Result::ok)
+                .map_while(Result::ok)
                 .take_while(|line| !line.is_empty())
                 .collect();
 

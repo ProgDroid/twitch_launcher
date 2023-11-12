@@ -31,3 +31,30 @@ impl Default for Home {
         Self::Favourites
     }
 }
+
+#[derive(PartialEq, Eq, Copy, Clone)]
+pub enum Lists {
+    Lists,
+    ListContent,
+}
+
+impl Panel for Lists {
+    fn left(&self) -> Self {
+        match *self {
+            Self::Lists | Self::ListContent => Self::Lists,
+        }
+    }
+
+    fn right(&self) -> Self {
+        match *self {
+            Self::Lists | Self::ListContent => Self::ListContent,
+        }
+    }
+}
+
+impl Default for Lists {
+    #[inline]
+    fn default() -> Self {
+        Self::Lists
+    }
+}

@@ -47,6 +47,17 @@ pub const fn timed_info_inputs() -> Vec<KeyBind<Event>> {
     Vec::new()
 }
 
+pub fn lists_inputs() -> Vec<KeyBind<Event>> {
+    [
+        exit(),
+        cycle_tabs(),
+        handle_highlights(),
+        select(),
+        cycle_panel(),
+    ]
+    .concat()
+}
+
 fn exit() -> Vec<KeyBind<Event>> {
     vec![
         KeyBind {
@@ -163,8 +174,4 @@ fn cycle_panel() -> Vec<KeyBind<Event>> {
             action: Event::CyclePanel(MoveDirection::Right),
         },
     ]
-}
-
-pub fn lists_inputs() -> Vec<KeyBind<Event>> {
-    [exit(), cycle_tabs(), handle_highlights(), select()].concat()
 }
