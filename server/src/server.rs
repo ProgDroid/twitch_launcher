@@ -14,6 +14,7 @@ pub struct Server {
 }
 
 impl Server {
+    #[allow(clippy::missing_errors_doc)]
     pub fn new(port: u16) -> Result<Self> {
         Ok(Self {
             port,
@@ -21,6 +22,7 @@ impl Server {
         })
     }
 
+    #[allow(clippy::missing_errors_doc)]
     pub fn redirect_url(&self) -> Result<Url> {
         Url::parse(format!("http://localhost:{}/", &self.port).as_str()).with_context(|| {
             format!(
@@ -30,12 +32,13 @@ impl Server {
         })
     }
 
+    #[allow(clippy::missing_errors_doc)]
     pub fn get_callback_data(&self) -> Result<(String, String)> {
         if let Some(mut stream) = self.listener.incoming().flatten().next() {
             let buf_reader = BufReader::new(&mut stream);
             let http_request: Vec<_> = buf_reader
                 .lines()
-                .filter_map(Result::ok)
+                .map_while(Result::ok)
                 .take_while(|line| !line.is_empty())
                 .collect();
 

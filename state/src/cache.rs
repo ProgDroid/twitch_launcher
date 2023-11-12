@@ -1,6 +1,7 @@
 use crate::{
     app_state::{
         home::Home,
+        lists::Lists,
         startup::{AccountMissing, Startup},
     },
     event::Event,
@@ -15,6 +16,7 @@ pub struct Cache {
 }
 
 // TODO turn into channel status cache
+// TODO could be more useful, only used for popups
 
 impl Cache {
     #[inline]
@@ -57,6 +59,7 @@ impl Cache {
                     return Some(AppState::Startup(Startup::new(s.timer, s.duration)));
                 }
                 AppState::Home(s) => return Some(AppState::Home(Home::from_existing(s, tx))),
+                AppState::Lists(s) => return Some(AppState::Lists(Lists::from_existing(s))),
                 AppState::Popup(_) | AppState::Exit(_) => return None, // Not cached
             }
         }

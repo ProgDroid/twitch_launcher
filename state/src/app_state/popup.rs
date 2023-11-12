@@ -123,6 +123,7 @@ fn new(title: String, message: String, variant: Type, callback: Option<Callback>
 
 #[async_trait]
 impl State for Popup {
+    #[allow(clippy::ignored_unit_patterns)]
     async fn tick(&self, _: &Option<Account>, timer: u64, events: UnboundedSender<Event>) {
         if let Type::TimedInfo(popup) = &self.variant {
             if timer > popup.duration {
@@ -316,4 +317,23 @@ pub fn redirect_url_port_submit(tx: &UnboundedSender<Event>, output: &Output) {
             input.parse().expect("Could not parse port"),
         ));
     }
+}
+
+#[allow(clippy::module_name_repetitions)]
+pub fn chat_popup(tx: &UnboundedSender<Event>) {
+    let _result = tx.send(Event::ChoicePopupStarted((
+        String::from("Launch Chat"),
+        String::from("Do you want to launch the chat with the stream?"),
+        vec![String::from("No"), String::from("Yes")],
+        Some(chat_choice),
+    )));
+}
+
+pub fn chat_popup_search(tx: &UnboundedSender<Event>) {
+    let _result = tx.send(Event::ChoicePopupStarted((
+        String::from("Launch Chat"),
+        String::from("Do you want to launch the chat with the stream?"),
+        vec![String::from("No"), String::from("Yes")],
+        Some(chat_choice_search),
+    )));
 }

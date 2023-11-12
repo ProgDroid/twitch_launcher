@@ -1,7 +1,7 @@
 use crate::{
     app_state::{
         exit::Exit,
-        popup::{chat_choice, chat_choice_search, Popup},
+        popup::{chat_popup, chat_popup_search, Popup},
     },
     event::Event,
     input_mappings::{home_inputs, typing_inputs},
@@ -24,11 +24,13 @@ use ui::{
     theme::Theme,
 };
 
+use super::lists::Lists;
+
 pub struct Home {
     channel_highlight: usize,
     pub favourites: Vec<Channel>,
-    channel_check: UnboundedReceiver<(String, Status)>,
-    channel_check_sender: UnboundedSender<(String, Status)>,
+    channel_check: UnboundedReceiver<(String, (Status, Option<String>))>,
+    channel_check_sender: UnboundedSender<(String, (Status, Option<String>))>,
     typing: bool,
     search_input: Vec<char>,
     focused_panel: HomePanel,
@@ -42,21 +44,9 @@ impl Home {
         typing: bool,
         search_input: &[char],
         focused_panel: HomePanel,
-        tx: &UnboundedSender<Event>,
+        _: &UnboundedSender<Event>,
     ) -> Self {
         let (sender, receiver) = unbounded_channel();
-
-        let mut channels_awaiting: Vec<Channel> = Vec::new();
-
-        for channel in favourites {
-            if channel.status == Status::Awaiting {
-                channels_awaiting.push(channel.clone());
-            }
-        }
-
-        if !channels_awaiting.is_empty() {
-            let _result = tx.send(Event::CheckChannels(channels_awaiting));
-        }
 
         let inputs = if typing {
             typing_inputs()
@@ -79,14 +69,15 @@ impl Home {
     pub fn from_existing(state: &mut Self, tx: &UnboundedSender<Event>) -> Self {
         let mut channels = state.favourites.clone();
 
-        while let Ok((handle, status)) = state.channel_check.try_recv() {
-            #[allow(clippy::expect_used)]
-            let index: usize = state
+        while let Ok((handle, (status, game_name))) = state.channel_check.try_recv() {
+            if let Some(index) = state
                 .favourites
                 .iter()
                 .position(|channel| channel.handle == handle && channel.status != status)
-                .expect("Received channel status for non-existing channel");
-            channels[index].status = status;
+            {
+                channels[index].status = status;
+                channels[index].game = game_name;
+            }
         }
 
         Self::new(
@@ -100,20 +91,33 @@ impl Home {
     }
 
     pub fn init(favourites: &[Channel], tx: &UnboundedSender<Event>) -> Self {
+        let mut channels_awaiting: Vec<Channel> = Vec::new();
+
+        for channel in favourites {
+            if channel.status == Status::Awaiting {
+                channels_awaiting.push(channel.clone());
+            }
+        }
+
+        if !channels_awaiting.is_empty() {
+            let _result = tx.send(Event::CheckChannels(channels_awaiting));
+        }
+
         Self::new(0, favourites, false, &Vec::new(), HomePanel::default(), tx)
     }
 
     pub fn channel_check(&mut self) {
         let mut channels = self.favourites.clone();
 
-        while let Ok((handle, status)) = self.channel_check.try_recv() {
-            #[allow(clippy::expect_used)]
-            let index: usize = self
+        while let Ok((handle, (status, game_name))) = self.channel_check.try_recv() {
+            if let Some(index) = self
                 .favourites
                 .iter()
                 .position(|channel| channel.handle == handle && channel.status != status)
-                .expect("Received channel status for non-existing channel");
-            channels[index].status = status;
+            {
+                channels[index].status = status;
+                channels[index].game = game_name;
+            }
         }
 
         self.favourites = channels;
@@ -122,6 +126,7 @@ impl Home {
 
 #[async_trait]
 impl State for Home {
+    #[allow(clippy::ignored_unit_patterns)]
     async fn tick(&self, _: &Option<Account>, _: u64, _: UnboundedSender<Event>) {}
 
     fn render<B: Backend>(&self, theme: &Theme, frame: &mut Frame<'_, B>, _: u64) {
@@ -182,13 +187,19 @@ impl State for Home {
                 // TODO check if channel is online?
                 let handle: String = self.search_input.iter().collect();
 
-                let channel = Channel::new(handle.clone(), handle);
+                let channel = Channel::new(handle.clone(), handle, None);
 
                 let _result = tx.send(Event::ChannelSelected(channel, chat_choice));
 
                 None
             }
-            Event::CycleTab(_direction) => None,
+            Event::CycleTab(direction) => match direction {
+                MoveDirection::Left | MoveDirection::Right => {
+                    // TODO shouldn't be reloading this every time
+                    Some(Transition::To(AppState::Lists(Lists::init(&tx))))
+                }
+                _ => None,
+            },
             Event::ChannelSelected(channel, chat) => {
                 if let Err(e) = channel.launch() {
                     eprintln!("Error opening stream: {e}");
@@ -289,22 +300,4 @@ impl State for Home {
             _ => {}
         }
     }
-}
-
-fn chat_popup(tx: &UnboundedSender<Event>) {
-    let _result = tx.send(Event::ChoicePopupStarted((
-        String::from("Launch Chat"),
-        String::from("Do you want to launch the chat with the stream?"),
-        vec![String::from("No"), String::from("Yes")],
-        Some(chat_choice),
-    )));
-}
-
-fn chat_popup_search(tx: &UnboundedSender<Event>) {
-    let _result = tx.send(Event::ChoicePopupStarted((
-        String::from("Launch Chat"),
-        String::from("Do you want to launch the chat with the stream?"),
-        vec![String::from("No"), String::from("Yes")],
-        Some(chat_choice_search),
-    )));
 }
