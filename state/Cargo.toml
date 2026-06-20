@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 async-trait = "0.1"
 crossterm = "0.25"
+directories = "5"
 jwalk = "0.8"
 serde_json = "1.0"
 tui = "0.19.0"

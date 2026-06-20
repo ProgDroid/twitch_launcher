@@ -110,7 +110,7 @@ impl Channel {
     }
 
     #[allow(clippy::missing_errors_doc)]
-    pub fn load_from_file(file: &str) -> Result<Vec<Self>> {
+    pub fn load_from_file<P: AsRef<std::path::Path>>(file: P) -> Result<Vec<Self>> {
         let data: String = read_to_string(file)?;
 
         Ok(serde_json::from_str(data.as_str())?)

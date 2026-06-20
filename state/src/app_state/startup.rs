@@ -68,8 +68,9 @@ impl State for Startup {
     ) -> Option<Transition> {
         match event {
             Event::Started => {
-                let channels = Channel::load_from_file(CHANNELS_FILE)
-                    .map_or_else(|_| Vec::new(), |channels| channels);
+                let channels =
+                    Channel::load_from_file(crate::util::config_dir().join(CHANNELS_FILE))
+                        .map_or_else(|_| Vec::new(), |channels| channels);
 
                 Some(Transition::To(AppState::Home(Home::init(
                     channels.as_slice(),
@@ -202,8 +203,9 @@ impl State for AccountMissing {
         match event {
             Event::Exited => Some(Transition::To(AppState::Exit(Exit::new()))),
             Event::AccountConfigured(_) => {
-                let channels = Channel::load_from_file(CHANNELS_FILE)
-                    .map_or_else(|_| Vec::new(), |channels| channels);
+                let channels =
+                    Channel::load_from_file(crate::util::config_dir().join(CHANNELS_FILE))
+                        .map_or_else(|_| Vec::new(), |channels| channels);
 
                 Some(Transition::To(AppState::Home(Home::init(
                     channels.as_slice(),

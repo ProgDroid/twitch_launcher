@@ -94,7 +94,7 @@ impl Lists {
     }
 
     pub fn init(tx: &UnboundedSender<Event>) -> Self {
-        let lists = WalkDir::new(LISTS_PATH)
+        let lists = WalkDir::new(crate::util::config_dir().join(LISTS_PATH))
             .sort(true)
             .into_iter()
             .filter_map(Result::ok)
@@ -235,8 +235,9 @@ impl State for Lists {
             Event::CycleTab(direction) => match direction {
                 MoveDirection::Left | MoveDirection::Right => {
                     // TODO shouldn't be reloading this every time
-                    let channels = Channel::load_from_file(CHANNELS_FILE)
-                        .map_or_else(|_| Vec::new(), |channels| channels);
+                    let channels =
+                        Channel::load_from_file(crate::util::config_dir().join(CHANNELS_FILE))
+                            .map_or_else(|_| Vec::new(), |channels| channels);
 
                     Some(Transition::To(AppState::Home(Home::init(
                         channels.as_slice(),
